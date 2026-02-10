@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-display: "Plus Jakarta Sans", sans-serif;
+  --font-body: "Plus Jakarta Sans", sans-serif;
+
+  --color-primary: #1F2937;
+  --color-primary-hover: #374151;
+  --color-accent-purple: #D8B4FE;
+  --color-accent-blue: #BAE6FD;
+  --color-background-light: #F3F4F6;
+  --color-background-dark: #0F172A;
+  --color-surface-light: #FFFFFF;
+  --color-surface-dark: #1E293B;
+
+  /* Background Images */
+  --background-image-gradient-mesh: radial-gradient(at 0% 0%, rgba(216, 180, 254, 0.33) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(186, 230, 253, 0.33) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(167, 243, 208, 0.33) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(253, 230, 138, 0.33) 0px, transparent 50%);
+  --background-image-dark-gradient-mesh: radial-gradient(at 0% 0%, rgba(147, 51, 234, 0.15) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%), radial-gradient(at 100% 100%, rgba(34, 197, 94, 0.15) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(234, 179, 8, 0.15) 0px, transparent 50%);
+}
+
+@layer utilities {
+  .bg-gradient-mesh {
+    background-image: var(--background-image-gradient-mesh);
+  }
+
+  .dark .bg-dark-gradient-mesh {
+    background-image: var(--background-image-dark-gradient-mesh);
+  }
+}
+
+/* Utilities */
+/* Utilities */
+.glass-effect {
+  @apply backdrop-blur-xl bg-white/40 dark:bg-slate-900/40 border border-white/20 dark:border-slate-700/30;
+}
+
+.card-popular {
+  @apply ring-2 ring-accent-purple/50 dark:ring-accent-purple/30;
+}
+
+body {
+  font-family: var(--font-body);
+}
+
+/* Material Icons support */
+.material-icons-outlined {
+  font-family: 'Material Icons Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+
+  /* Support for all WebKit browsers. */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Safari and Chrome. */
+  text-rendering: optimizeLegibility;
+
+  /* Support for Firefox. */
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Support for IE. */
+  font-feature-settings: 'liga';
+}
