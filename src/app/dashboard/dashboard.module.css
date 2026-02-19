@@ -1,0 +1,137 @@
+.glassEffect {
+    backdrop-filter: blur(12px);
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+:global(.dark) .glassEffect {
+    background-color: rgba(15, 23, 42, 0.5);
+}
+
+.bgGradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 24rem;
+    background-image: linear-gradient(to bottom right, #eff6ff, #f5f3ff);
+    z-index: -10;
+}
+
+:global(.dark) .bgGradient {
+    background-image: linear-gradient(to bottom right, #0f172a, #312e81);
+}
+
+.blobTop {
+    position: absolute;
+    top: -10%;
+    right: -5%;
+    width: 500px;
+    height: 500px;
+    background-color: #e9d5ff;
+    border-radius: 9999px;
+    filter: blur(100px);
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+:global(.dark) .blobTop {
+    background-color: rgba(88, 28, 135, 0.2);
+}
+
+.blobBottom {
+    position: absolute;
+    bottom: 10%;
+    left: 10%;
+    width: 300px;
+    height: 300px;
+    background-color: #bfdbfe;
+    border-radius: 9999px;
+    filter: blur(80px);
+    opacity: 0.3;
+    pointer-events: none;
+}
+
+:global(.dark) .blobBottom {
+    background-color: rgba(30, 58, 138, 0.2);
+}
+
+.shadowSoft {
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.08);
+}
+
+.innerShadowLight {
+    box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+}
+
+.welcomeTitle {
+    font-size: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: #1A1A1A;
+}
+
+:global(.dark) .welcomeTitle {
+    color: white;
+}
+
+.newGenButton {
+    background-color: #C05621;
+    color: white;
+    padding: 0.875rem 1.75rem;
+    border-radius: 9999px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.3s;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 14px 0 rgba(192, 86, 33, 0.3);
+}
+
+.newGenButton:hover {
+    background-color: #9c4221;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(192, 86, 33, 0.4);
+}
+
+.statsCard {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(12px);
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: all 0.3s;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+:global(.dark) .statsCard {
+    background: rgba(30, 41, 59, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.statsCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+}
+
+.statsIconContainer {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.statsBadge {
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+}
