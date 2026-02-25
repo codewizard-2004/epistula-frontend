@@ -56,9 +56,6 @@ export default function Navbar() {
                 <Link href="/jobs" className={`${styles.navItem} ${isActive('/jobs') ? styles.navItemActive : ''}`}>
                     Find Job
                 </Link>
-                <Link href="/editor" className={`${styles.navItem} ${isActive('/editor') ? styles.navItemActive : ''}`}>
-                    Editor
-                </Link>
             </nav>
 
             <div className={styles.actionArea}>
