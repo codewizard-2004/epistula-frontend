@@ -1,8 +1,10 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
 import styles from "./analyze.module.css";
 import Navbar from "@/components/Navbar";
+import LoadingModal from "@/components/LoadingModal";
 
 export default function AnalyzePage() {
     const [file, setFile] = useState<File | null>(null);
@@ -22,8 +24,10 @@ export default function AnalyzePage() {
         }
     });
     const [showResults, setShowResults] = useState(false);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const router = useRouter();
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -57,9 +61,20 @@ export default function AnalyzePage() {
     };
 
     const handleAnalyze = () => {
-        // Future navigation to results page
-        console.log("Navigating to results with final data:", extractData);
+        setIsAnalyzing(true);
     };
+
+    const handleAnalysisComplete = () => {
+        setIsAnalyzing(false);
+        router.push("/analyze/result");
+    };
+
+    const analysisSteps = [
+        { title: "Document Uploaded", description: "Source file successfully parsed and validated." },
+        { title: "ATS Compatibility Check", description: "Evaluating your resume against common tracking algorithms." },
+        { title: "Skill Gap Analysis", description: "Identifying missing keywords and relevant industry skills." },
+        { title: "Formatting Review", description: "Checking layout consistency and visual hierarchy." }
+    ];
 
     const triggerFileInput = () => {
         fileInputRef.current?.click();
@@ -78,6 +93,12 @@ export default function AnalyzePage() {
     return (
         <div className="font-body min-h-screen transition-colors duration-300 overflow-x-clip relative pb-12">
             <Navbar />
+
+            <LoadingModal
+                isOpen={isAnalyzing}
+                onComplete={handleAnalysisComplete}
+                steps={analysisSteps}
+            />
 
             {/* Background Effects */}
             <div className={styles.bgGradient}></div>

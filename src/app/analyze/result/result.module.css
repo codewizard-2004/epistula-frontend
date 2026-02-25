@@ -1,0 +1,227 @@
+.container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+    width: 100%;
+    padding: 0 1rem;
+}
+
+.bgEffects {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: -10;
+}
+
+.bgGradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom right, #e0e7ff, #f5f3ff, #fdf2f8);
+}
+
+:global(.dark) .bgGradient {
+    background: linear-gradient(to bottom right, #111827, #1f2937, #111827);
+}
+
+.blob1 {
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 40%;
+    height: 40%;
+    background: rgba(139, 92, 246, 0.2);
+    border-radius: 9999px;
+    filter: blur(100px);
+}
+
+.blob2 {
+    position: absolute;
+    bottom: 10%;
+    right: 10%;
+    width: 30%;
+    height: 30%;
+    background: rgba(59, 130, 246, 0.2);
+    border-radius: 9999px;
+    filter: blur(80px);
+}
+
+.navContainer {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    padding: 0.25rem;
+    border-radius: 9999px;
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+}
+
+:global(.dark) .navContainer {
+    background: rgba(31, 41, 55, 0.8);
+}
+
+.navLink {
+    padding: 0.5rem 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #6b7280;
+    transition: color 0.2s;
+}
+
+.navLinkActive {
+    background: #1f2937;
+    color: white;
+    border-radius: 9999px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.main {
+    flex: 1;
+    overflow: hidden;
+    padding-bottom: 1.5rem;
+}
+
+.scrollArea {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1.5rem;
+    height: 100%;
+}
+
+.sidebar {
+    grid-column: span 12 / span 12;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+@media (min-width: 1024px) {
+    .sidebar {
+        grid-column: span 4 / span 4;
+    }
+}
+
+.content {
+    grid-column: span 12 / span 12;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    height: 100%;
+    min-height: 600px;
+}
+
+@media (min-width: 1024px) {
+    .content {
+        grid-column: span 8 / span 8;
+    }
+}
+
+.buttonPrimary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem;
+    background: #1f2937;
+    color: white;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.buttonSecondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 1rem;
+    background: white;
+    border: 1px solid #e5e7eb;
+    color: #1f2937;
+    border-radius: 0.75rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+:global(.dark) .buttonSecondary {
+    background: #374151;
+    border-color: #4b5563;
+    color: white;
+}
+
+.sectionRequirements {
+    background: rgba(254, 226, 226, 0.3);
+    border: 1px solid #fee2e2;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+}
+
+:global(.dark) .sectionRequirements {
+    background: rgba(127, 29, 29, 0.1);
+    border-color: rgba(127, 29, 29, 0.3);
+}
+
+.sectionImprovements {
+    background: rgba(224, 242, 254, 0.3);
+    border: 1px solid #e0f2fe;
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    flex: 1;
+    overflow-y: auto;
+}
+
+:global(.dark) .sectionImprovements {
+    background: rgba(30, 58, 138, 0.1);
+    border-color: rgba(30, 58, 138, 0.3);
+}
+
+.itemCard {
+    background: white;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: start;
+    gap: 1rem;
+    border: 1px solid transparent;
+    transition: border-color 0.2s;
+}
+
+:global(.dark) .itemCard {
+    background: #1f2937;
+}
+
+.itemCard:hover {
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.tag {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+}
+
+.tagRed {
+    background: white;
+    color: #ef4444;
+}
+
+:global(.dark) .tagRed {
+    background: #1f2937;
+}
