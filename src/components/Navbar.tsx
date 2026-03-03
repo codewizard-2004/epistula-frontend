@@ -68,12 +68,15 @@ export default function Navbar() {
                         {isDark ? "light_mode" : "dark_mode"}
                     </span>
                 </button>
-                <div className={styles.profilePic}>
+                <Link
+                    href="/profile"
+                    className={`${styles.profilePic} ${isActive('/profile') ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900' : ''}`}
+                >
                     <img
                         alt="User Profile"
                         src="https://lh3.googleusercontent.com/aida-public/AB6AXuBicSWD_kQyrbudKa2pZLs3ZcAkdJpZ8E66OiP0djkNN_Fnxe6vPpMWbyU_30qVTDqP9A3kJZ3BEgQL5VhjpPM1rNoZAVjrgAP2PFTCYPoNnOJzRCS1z9vdbwAgOIRdrFITU4prvRWlLS3ISMP8dm7q6mF-dQGC4NOCIhDfOC-CA6px1jU9aGdr_DQyY8cQJkExwHXvnTXLVpLzQTs_MU2bmPHWGeg4Anhea2kZFASYncm6mhANxuLO_RXs4Xs4AYRz8Wv1KZ2UseU"
                     />
-                </div>
+                </Link>
             </div>
         </header>
     );
