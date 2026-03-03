@@ -1,0 +1,324 @@
+.container {
+    padding: 1rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    height: calc(100vh - 64px);
+    /* Subtract Navbar height */
+    max-width: 1600px;
+    margin: 0 auto;
+    width: 100%;
+    overflow: hidden;
+}
+
+.bgGradient {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(circle at 0% 0%, #f3f4f8 0%, #ffffff 100%);
+    transition: background 0.3s ease;
+}
+
+:global(.dark) .bgGradient {
+    background: radial-gradient(circle at 0% 0%, #0f172a 0%, #1e293b 100%);
+}
+
+.blob {
+    position: fixed;
+    width: 40vw;
+    height: 40vw;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.15;
+    z-index: -1;
+    pointer-events: none;
+}
+
+.blob1 {
+    top: -10%;
+    left: -10%;
+    background: #a8a4f4;
+}
+
+.blob2 {
+    top: -10%;
+    right: -10%;
+    background: #a4d4f4;
+}
+
+.blob3 {
+    bottom: -10%;
+    left: 20%;
+    background: #f4a4d4;
+}
+
+.layout {
+    display: flex;
+    gap: 1.25rem;
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+}
+
+.sidebar {
+    width: var(--sidebar-width, 320px);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    flex-shrink: 0;
+    height: 100%;
+}
+
+.resizeHandle {
+    width: 4px;
+    height: 100%;
+    cursor: col-resize;
+    position: relative;
+    z-index: 20;
+    transition: background 0.2s;
+    background: transparent;
+    margin: 0 -2px;
+}
+
+.resizeHandle:hover,
+.resizeHandleActive {
+    background: rgba(168, 164, 244, 0.3);
+}
+
+.resizeHandle::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 1px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+:global(.dark) .resizeHandle::after {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.resizeHandle:hover::after,
+.resizeHandleActive::after {
+    opacity: 1;
+}
+
+.glassPanel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.dark) .glassPanel {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebarCard {
+    flex: 1;
+    min-height: 0;
+    padding: 1.25rem;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.cardTitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.jobContent {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 1rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+:global(.dark) .jobContent {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.resumePreview {
+    flex: 1;
+    background: rgba(226, 232, 240, 0.5);
+    border-radius: 1rem;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+:global(.dark) .resumePreview {
+    background: rgba(30, 41, 59, 0.5);
+}
+
+.mainContent {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 0;
+    height: 100%;
+}
+
+.editorContainer {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.editorHeader {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid rgba(241, 245, 249, 0.5);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+:global(.dark) .editorHeader {
+    border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.tabs {
+    background: rgba(241, 245, 249, 0.8);
+    padding: 0.25rem;
+    border-radius: 0.75rem;
+    display: flex;
+    gap: 0.25rem;
+}
+
+:global(.dark) .tabs {
+    background: rgba(15, 23, 42, 0.6);
+}
+
+.tab {
+    padding: 0.4rem 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    color: #64748b;
+}
+
+.tabActive {
+    background: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    color: #212121;
+}
+
+:global(.dark) .tabActive {
+    background: #334155;
+    color: white;
+}
+
+.editorBody {
+    flex: 1;
+    padding: 1.5rem;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.textarea {
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: none;
+    resize: none;
+    font-size: 1rem;
+    line-height: 2;
+    color: #334155;
+    outline: none;
+    overflow-y: auto;
+}
+
+:global(.dark) .textarea {
+    color: #cbd5e1;
+}
+
+.footerActions {
+    padding: 0.75rem 1.5rem;
+    background: rgba(248, 250, 252, 0.5);
+    border-top: 1px solid rgba(241, 245, 249, 0.5);
+    flex-shrink: 0;
+}
+
+:global(.dark) .footerActions {
+    background: rgba(15, 23, 42, 0.3);
+    border-top: 1px solid rgba(51, 65, 85, 0.5);
+}
+
+.regenerateBtn {
+    position: absolute;
+    bottom: 2rem;
+    right: 2.5rem;
+    background: #212121;
+    color: white;
+    padding: 0.875rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s;
+    z-index: 10;
+}
+
+.regenerateBtn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 25px 30px -5px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 1024px) {
+    .container {
+        height: auto;
+        overflow: visible;
+    }
+
+    .layout {
+        flex-direction: column;
+        height: auto;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+    }
+
+    .mainContent {
+        height: auto;
+    }
+
+    .editorContainer {
+        height: 600px;
+    }
+}

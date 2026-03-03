@@ -3,9 +3,11 @@
 import { useState } from "react";
 import styles from "./pricing.module.css";
 import Navbar from "@/components/Navbar";
+import { useRouter } from "next/navigation";
 
 export default function PricingPage() {
     const [isAnnual, setIsAnnual] = useState(false);
+    const router = useRouter();
 
     return (
         <div className="font-body min-h-screen transition-colors duration-300 overflow-x-clip relative">
@@ -90,7 +92,10 @@ export default function PricingPage() {
                                 <span className="text-sm line-through">Custom Formatting</span>
                             </li>
                         </ul>
-                        <button className={styles.pricingButtonOutline}>
+                        <button
+                            className={styles.pricingButtonOutline}
+                            onClick={() => router.push("/dashboard")}
+                        >
                             Get Started Free
                         </button>
                     </div>

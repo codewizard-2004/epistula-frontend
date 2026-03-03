@@ -292,7 +292,7 @@ export default function SignupPage() {
                             Already have an account?{" "}
                             <a
                                 className="font-bold text-primary dark:text-white hover:underline"
-                                href="/login"
+                                href="login"
                             >
                                 Sign in
                             </a>

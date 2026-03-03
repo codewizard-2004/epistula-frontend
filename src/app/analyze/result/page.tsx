@@ -4,6 +4,7 @@ import styles from "./result.module.css";
 import Navbar from "@/components/Navbar";
 import ATSScoreCircle from "@/components/ATSScoreCircle";
 import MatchScoreCard from "@/components/MatchScoreCard";
+import Link from "next/link";
 
 export default function ResultPage() {
     return (
@@ -43,14 +44,14 @@ export default function ResultPage() {
                                     />
 
                                     <div className="grid grid-cols-1 gap-3 mt-auto">
-                                        <button className={styles.buttonPrimary}>
+                                        <Link href="/analyze/generation?type=letter" className={styles.buttonPrimary}>
                                             <span className="material-icons-round">description</span>
                                             Create Cover Letter
-                                        </button>
-                                        <button className={styles.buttonSecondary}>
+                                        </Link>
+                                        <Link href="/analyze/generation?type=email" className={styles.buttonSecondary}>
                                             <span className="material-icons-round">mail</span>
                                             Create Cover Email
-                                        </button>
+                                        </Link>
                                     </div>
                                 </div>
 

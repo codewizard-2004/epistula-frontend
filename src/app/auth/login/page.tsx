@@ -2,9 +2,12 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+
 
 export default function LoginPage() {
     const [isDark, setIsDark] = useState(false);
+    const router = useRouter();
 
     useEffect(() => {
         // Check system preference or local storage on mount
@@ -280,6 +283,7 @@ export default function LoginPage() {
                             <button
                                 className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:-translate-y-0.5 shadow-lg shadow-gray-200 dark:shadow-none cursor-pointer"
                                 type="submit"
+                                onClick={() => router.push("/pricing")}
                             >
                                 Sign in to Dashboard
                             </button>
@@ -288,7 +292,7 @@ export default function LoginPage() {
                             Don&apos;t have an account?{" "}
                             <a
                                 className="font-bold text-primary dark:text-white hover:underline"
-                                href="#"
+                                href="signup"
                             >
                                 Sign up for free
                             </a>

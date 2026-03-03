@@ -25,6 +25,7 @@ export default function AnalyzePage() {
     });
     const [showResults, setShowResults] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [jobDescription, setJobDescription] = useState("");
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
@@ -41,8 +42,7 @@ export default function AnalyzePage() {
         setIsProcessing(true);
         // Simulate extraction delay
         setTimeout(() => {
-            setIsProcessing(false);
-            setExtractData({
+            const data = {
                 resume: {
                     fullName: "Alexandra Chen",
                     email: "alex.chen@email.com",
@@ -55,8 +55,17 @@ export default function AnalyzePage() {
                     location: "Remote (US)",
                     employmentType: "Full-time"
                 }
-            });
+            };
+            setIsProcessing(false);
+            setExtractData(data);
             setShowResults(true);
+
+            // Persist for other pages
+            localStorage.setItem("epistula_analysis_data", JSON.stringify(data));
+            localStorage.setItem("epistula_job_description", jobDescription);
+            if (file) {
+                localStorage.setItem("epistula_resume_filename", file.name);
+            }
         }, 1500);
     };
 
@@ -130,6 +139,8 @@ export default function AnalyzePage() {
                             <textarea
                                 className="w-full h-full min-h-[400px] p-4 bg-transparent border-none focus:ring-0 text-gray-700 dark:text-gray-200 resize-none placeholder-gray-400 dark:placeholder-gray-600 outline-none"
                                 placeholder="Paste the full job description here. Include requirements, responsibilities, and company details for the best analysis results..."
+                                value={jobDescription}
+                                onChange={(e) => setJobDescription(e.target.value)}
                             ></textarea>
                         </div>
                     </div>
