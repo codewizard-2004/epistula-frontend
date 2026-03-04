@@ -1,3 +1,5 @@
+import Link from "next/link";
+import RecentGeneration from "@/components/RecentGeneration";
 import styles from "./dashboard.module.css";
 import Navbar from "@/components/Navbar";
 
@@ -23,10 +25,10 @@ export default function DashboardPage() {
                                 Your job search is on track — 3 new matches since yesterday.
                             </p>
                         </div>
-                        <button className={styles.newGenButton}>
+                        <Link href="/analyze/generation?source=direct" className={styles.newGenButton}>
                             <span className="material-icons-round">add</span>
                             New Generation
-                        </button>
+                        </Link>
                     </div>
 
                     {/* Statistics Grid */}
@@ -101,65 +103,9 @@ export default function DashboardPage() {
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 {/* Recent Generations */}
                                 <div className={`bg-white dark:bg-surface-dark p-6 rounded-2xl ${styles.shadowSoft} dark:shadow-none border border-gray-100 dark:border-gray-800`}>
-                                    <div className="flex justify-between items-center mb-6">
-                                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recent Generations</h3>
-                                        <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-1 flex items-center cursor-pointer">
-                                            <span className="text-xs font-semibold px-2 text-gray-600 dark:text-gray-300">All</span>
-                                            <span className="material-icons-round text-sm text-gray-400">expand_more</span>
-                                        </div>
-                                    </div>
+
                                     <div className="space-y-6">
-                                        <div className="group cursor-pointer">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-gray-900 text-white flex items-center justify-center">
-                                                        <span className="material-icons-round text-lg">description</span>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-accent transition-colors line-clamp-1">Software Engineer - Tech Corp</h4>
-                                                        <p className="text-xs text-gray-500">Cover Letter • 2 mins ago</p>
-                                                    </div>
-                                                </div>
-                                                <span className="text-lg font-bold text-gray-900 dark:text-white">98%</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 dark:bg-gray-700 h-1 rounded-full overflow-hidden">
-                                                <div className="bg-green-500 h-full w-[98%]"></div>
-                                            </div>
-                                        </div>
-                                        <div className="group cursor-pointer">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 text-gray-900 dark:text-white flex items-center justify-center">
-                                                        <span className="material-icons-round text-lg">fact_check</span>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-accent transition-colors line-clamp-1">Product Manager - Streamer</h4>
-                                                        <p className="text-xs text-gray-500">Resume Analysis • 2 hours ago</p>
-                                                    </div>
-                                                </div>
-                                                <span className="text-lg font-bold text-gray-900 dark:text-white">85%</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 dark:bg-gray-700 h-1 rounded-full overflow-hidden">
-                                                <div className="bg-blue-500 h-full w-[85%]"></div>
-                                            </div>
-                                        </div>
-                                        <div className="group cursor-pointer">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 dark:bg-gray-800 dark:border-gray-700 text-gray-900 dark:text-white flex items-center justify-center">
-                                                        <span className="material-icons-round text-lg">edit</span>
-                                                    </div>
-                                                    <div>
-                                                        <h4 className="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-accent transition-colors line-clamp-1">UX Designer - Travel</h4>
-                                                        <p className="text-xs text-gray-500">Draft • Yesterday</p>
-                                                    </div>
-                                                </div>
-                                                <span className="text-lg font-bold text-gray-900 dark:text-white">42%</span>
-                                            </div>
-                                            <div className="w-full bg-gray-100 dark:bg-gray-700 h-1 rounded-full overflow-hidden">
-                                                <div className="bg-yellow-400 h-full w-[42%]"></div>
-                                            </div>
-                                        </div>
+                                        <RecentGeneration />
                                     </div>
                                 </div>
 
@@ -230,7 +176,7 @@ export default function DashboardPage() {
 
                             {/* Action Cards */}
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <div className="bg-pastel-purple/50 dark:bg-indigo-900/20 p-8 rounded-2xl border border-indigo-100 dark:border-indigo-800/30 relative overflow-hidden group hover:shadow-lg transition-all cursor-pointer h-full flex flex-col justify-between">
+                                <Link href="/analyze/generation?source=direct" className="bg-pastel-purple/50 dark:bg-indigo-900/20 p-8 rounded-2xl border border-indigo-100 dark:border-indigo-800/30 relative overflow-hidden group hover:shadow-lg transition-all cursor-pointer h-full flex flex-col justify-between">
                                     <div className="relative z-10">
                                         <div className="flex justify-between items-start mb-6">
                                             <div className="w-12 h-12 bg-white dark:bg-indigo-950 rounded-xl flex items-center justify-center shadow-sm text-indigo-600 dark:text-indigo-400">
@@ -251,8 +197,8 @@ export default function DashboardPage() {
                                         </div>
                                         <span className="material-icons-round text-indigo-600 dark:text-indigo-400 transform group-hover:translate-x-1 transition-transform">arrow_forward</span>
                                     </div>
-                                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-300/30 dark:bg-indigo-600/20 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
-                                </div>
+                                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-indigo-300/30 dark:bg-indigo-600/20 rounded-full blur-3xl group-hover:scale-125 transition-transform duration-700"></div >
+                                </Link>
                                 <div className="bg-pastel-orange/50 dark:bg-orange-900/20 p-8 rounded-2xl border border-orange-100 dark:border-orange-800/30 relative overflow-hidden group hover:shadow-lg transition-all cursor-pointer h-full flex flex-col justify-between">
                                     <div className="relative z-10">
                                         <div className="flex justify-between items-start mb-6">

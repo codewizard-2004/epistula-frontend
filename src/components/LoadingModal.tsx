@@ -87,11 +87,6 @@ export default function LoadingModal({ isOpen, onComplete, steps }: LoadingModal
                         );
                     })}
                 </div>
-
-                <div className={styles.footer}>
-                    <span className={styles.processId}>PROCESS ID: {processId}</span>
-                    <span className={styles.estTime}>EST. TIME: {timeLeft} SECONDS REMAINING</span>
-                </div>
             </div>
         </div>
     );

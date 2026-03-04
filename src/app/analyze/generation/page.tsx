@@ -16,6 +16,9 @@ function GenerationContent() {
     const [originalFilename, setOriginalFilename] = useState("");
     const [sidebarWidth, setSidebarWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
+    const [isEditingJob, setIsEditingJob] = useState(false);
+    const [tempJobTitle, setTempJobTitle] = useState("");
+    const [tempCompanyName, setTempCompanyName] = useState("");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleMouseDown = (e: React.MouseEvent) => {
@@ -58,6 +61,22 @@ function GenerationContent() {
 
     useEffect(() => {
         const type = searchParams.get("type");
+        const id = searchParams.get("id");
+        const source = searchParams.get("source");
+
+        if (source === "direct") {
+            setAnalysisData({
+                job: {
+                    jobTitle: "",
+                    companyName: "",
+                    location: "",
+                }
+            });
+            setJobDescription("");
+            setOriginalFilename("");
+            setDraft("");
+        }
+
         if (type === "email") {
             setActiveTab("cover-email");
         } else if (type === "letter") {
@@ -97,7 +116,7 @@ function GenerationContent() {
 
     const coverLetterTemplate = `Dear Hiring Manager,
 
-I am writing to express my strong interest in the ${analysisData?.job?.jobTitle || 'Senior Frontend Developer'} position at ${analysisData?.job?.companyName || 'TechCorp Inc.'}. With my specialized experience in React and modern CSS frameworks like Tailwind, I was excited to see an opening that aligns so perfectly with my background.
+I am writing to express my strong interest in the ${analysisData?.job?.jobTitle || 'Job Title'} position at ${analysisData?.job?.companyName || 'Company Name'}. With my specialized experience in React and modern CSS frameworks like Tailwind, I was excited to see an opening that aligns so perfectly with my background.
 
 In my previous roles, I have consistently delivered high-quality frontend solutions. I noticed ${analysisData?.job?.companyName || 'TechCorp'} values performance optimization, and I believe my expertise in this area could provide immediate value to your engineering team.
 
@@ -106,11 +125,11 @@ I have attached my resume for your review and look forward to the possibility of
 Sincerely,
 Alex Dev`;
 
-    const coverEmailTemplate = `Subject: Application for ${analysisData?.job?.jobTitle || 'Senior Frontend Developer'} - Alex Dev
+    const coverEmailTemplate = `Subject: Application for ${analysisData?.job?.jobTitle || 'Job Title'} - Alex Dev
 
 Hi Team,
 
-I'm Alex, and I'm excited to apply for the ${analysisData?.job?.jobTitle || 'Senior Frontend Developer'} role at ${analysisData?.job?.companyName || 'TechCorp Inc.'}. 
+I'm Alex, and I'm excited to apply for the ${analysisData?.job?.jobTitle || 'Job Title'} role at ${analysisData?.job?.companyName || 'Company Name'}. 
 
 Having spent years building high-performance React applications, I'm confident I can help your team push the boundaries of your frontend experience. I've always admired your commitment to clean UI and performance.
 
@@ -145,18 +164,64 @@ Alex Dev`;
                                     <span className="material-icons-round text-blue-500 text-lg">work</span>
                                     Job Description
                                 </h2>
-                                <button className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition">
-                                    <span className="material-icons-round text-slate-400 text-xs">edit</span>
+                                <button
+                                    className={`p-1.5 rounded-full transition ${isEditingJob ? "bg-primary text-white" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400"}`}
+                                    onClick={() => {
+                                        if (!isEditingJob) {
+                                            setTempJobTitle(analysisData?.job?.jobTitle || "");
+                                            setTempCompanyName(analysisData?.job?.companyName || "");
+                                        } else {
+                                            // Save changes
+                                            setAnalysisData((prev: any) => ({
+                                                ...prev,
+                                                job: {
+                                                    ...prev?.job,
+                                                    jobTitle: tempJobTitle,
+                                                    companyName: tempCompanyName
+                                                }
+                                            }));
+                                        }
+                                        setIsEditingJob(!isEditingJob);
+                                    }}
+                                >
+                                    <span className="material-icons-round text-xs">{isEditingJob ? "check" : "edit"}</span>
                                 </button>
                             </div>
                             <div className={styles.jobContent}>
-                                <div className="mb-3">
-                                    <p className="font-bold text-primary dark:text-white text-sm mb-0.5">{analysisData?.job?.jobTitle || "Loading..."}</p>
-                                    <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{analysisData?.job?.companyName || "..."} • {analysisData?.job?.location || "..."}</p>
-                                </div>
-                                <div className="flex-1 overflow-y-auto text-xs leading-relaxed text-slate-600 dark:text-slate-400 custom-scrollbar pr-1">
-                                    {jobDescription}
-                                </div>
+                                {isEditingJob ? (
+                                    <div className="space-y-3 mb-3">
+                                        <input
+                                            type="text"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg p-2 text-xs font-bold text-primary dark:text-white focus:ring-1 focus:ring-primary"
+                                            placeholder="Job Title"
+                                            value={tempJobTitle}
+                                            onChange={(e) => setTempJobTitle(e.target.value)}
+                                        />
+                                        <input
+                                            type="text"
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg p-2 text-xs font-medium text-slate-500 focus:ring-1 focus:ring-primary"
+                                            placeholder="Company Name"
+                                            value={tempCompanyName}
+                                            onChange={(e) => setTempCompanyName(e.target.value)}
+                                        />
+                                        <textarea
+                                            className="w-full bg-slate-50 dark:bg-slate-800 border-none rounded-lg p-2 text-xs leading-relaxed text-slate-600 dark:text-slate-400 focus:ring-1 focus:ring-primary min-h-[150px] resize-none custom-scrollbar"
+                                            placeholder="Paste job description here..."
+                                            value={jobDescription}
+                                            onChange={(e) => setJobDescription(e.target.value)}
+                                        />
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className="mb-3">
+                                            <p className="font-bold text-primary dark:text-white text-sm mb-0.5">{analysisData?.job?.jobTitle || "Job Title"}</p>
+                                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">{analysisData?.job?.companyName || "Company"} • {analysisData?.job?.location || "Location"}</p>
+                                        </div>
+                                        <div className="flex-1 overflow-y-auto text-xs leading-relaxed text-slate-600 dark:text-slate-400 custom-scrollbar pr-1">
+                                            {jobDescription || "No description provided."}
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         </div>
 
@@ -211,6 +276,12 @@ Alex Dev`;
                                 <div className="flex items-center gap-3">
                                     <span className="material-icons-round text-yellow-500">auto_awesome</span>
                                     <h2 className="text-xl font-bold text-slate-800 dark:text-white">Generated Draft</h2>
+                                    {searchParams.get("id") && (
+                                        <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center gap-1">
+                                            <span className="material-icons-round text-[10px]">history</span>
+                                            Saved
+                                        </span>
+                                    )}
                                 </div>
 
                                 <div className={styles.tabs}>

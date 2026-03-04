@@ -53,9 +53,13 @@ export default function Navbar() {
                 <Link href="/analyze" className={`${styles.navItem} ${isActive('/analyze') ? styles.navItemActive : ''}`}>
                     Analyze Resume
                 </Link>
+                <Link href="/analyze/generation" className={`${styles.navItem} ${isActive('/analyze/generation') ? styles.navItemActive : ''}`}>
+                    Draft Generator
+                </Link>
                 <Link href="/jobs" className={`${styles.navItem} ${isActive('/jobs') ? styles.navItemActive : ''}`}>
                     Find Job
                 </Link>
+
             </nav>
 
             <div className={styles.actionArea}>

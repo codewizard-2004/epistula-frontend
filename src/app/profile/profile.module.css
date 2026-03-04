@@ -195,6 +195,152 @@
     color: #64748b;
 }
 
+/* Subscription & History Styles */
+.usageContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 1rem;
+}
+
+.usageItem {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.usageHeader {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.progressBar {
+    height: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+:global(.dark) .progressBar {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #6366f1, #a855f7);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.historyList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.historyItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 1rem;
+    transition: all 0.2s;
+}
+
+:global(.dark) .historyItem {
+    background: rgba(15, 23, 42, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.historyItem:hover {
+    background: rgba(255, 255, 255, 0.5);
+    transform: translateX(4px);
+}
+
+:global(.dark) .historyItem:hover {
+    background: rgba(15, 23, 42, 0.4);
+}
+
+.historyIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.historyInfo {
+    flex: 1;
+    margin-left: 1rem;
+}
+
+.historyTitle {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+:global(.dark) .historyTitle {
+    color: #f1f5f9;
+}
+
+.historyDate {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+/* Modal Styles */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modalContent {
+    width: 100%;
+    max-width: 480px;
+}
+
+.modalHeader {
+    padding: 1.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+:global(.dark) .modalHeader {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modalBody {
+    padding: 1.5rem;
+}
+
+.modalFooter {
+    padding: 1.25rem 1.5rem;
+    background: rgba(0, 0, 0, 0.02);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+:global(.dark) .modalFooter {
+    background: rgba(255, 255, 255, 0.02);
+}
+
 .settingsSection {
     margin-bottom: 2rem;
 }

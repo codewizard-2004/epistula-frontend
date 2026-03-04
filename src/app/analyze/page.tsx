@@ -75,7 +75,8 @@ export default function AnalyzePage() {
 
     const handleAnalysisComplete = () => {
         setIsAnalyzing(false);
-        router.push("/analyze/result");
+        const newUuid = `an-${Math.random().toString(36).substring(2, 11)}`;
+        router.push(`/analyze/result?id=${newUuid}`);
     };
 
     const analysisSteps = [
