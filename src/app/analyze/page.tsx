@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import styles from "./analyze.module.css";
 import Navbar from "@/components/Navbar";
 import LoadingModal from "@/components/LoadingModal";
+import { useParseDocument } from "@/hooks/useParseDocument";
 
 export default function AnalyzePage() {
     const [file, setFile] = useState<File | null>(null);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const { mutateAsync: parseDocument, isPending } = useParseDocument();
     const [extractData, setExtractData] = useState({
         resume: {
             fullName: "",
@@ -26,6 +27,7 @@ export default function AnalyzePage() {
     const [showResults, setShowResults] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [jobDescription, setJobDescription] = useState("");
+    const [fullParseData, setFullParseData] = useState<any>(null);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
@@ -36,41 +38,51 @@ export default function AnalyzePage() {
         }
     };
 
-    const handleUpload = () => {
-        if (!file) return;
+    const handleUpload = async () => {
+        if (!file || jobDescription.trim() === '') return;
+        
+        try {
+            const data = await parseDocument({ file, jobDescription });
+            setFullParseData(data);
 
-        setIsProcessing(true);
-        // Simulate extraction delay
-        setTimeout(() => {
-            const data = {
+            const mappedData = {
                 resume: {
-                    fullName: "Alexandra Chen",
-                    email: "alex.chen@email.com",
-                    currentRole: "Senior Frontend Developer",
-                    experience: "7 years"
+                    fullName: data.parsed_resume?.name || "",
+                    email: data.parsed_resume?.email || "",
+                    currentRole: "",
+                    experience: data.parsed_resume?.experience ? `${data.parsed_resume.experience} years` : ""
                 },
                 job: {
-                    companyName: "Stripe",
-                    jobTitle: "Lead Frontend Engineer",
-                    location: "Remote (US)",
-                    employmentType: "Full-time"
+                    companyName: data.parsed_jd?.company || "",
+                    jobTitle: data.parsed_jd?.title || "",
+                    location: data.parsed_jd?.location || "",
+                    employmentType: data.parsed_jd?.employment_type || ""
                 }
             };
-            setIsProcessing(false);
-            setExtractData(data);
+
+            setExtractData(mappedData);
             setShowResults(true);
 
             // Persist for other pages
-            localStorage.setItem("epistula_analysis_data", JSON.stringify(data));
+            localStorage.setItem("epistula_analysis_data", JSON.stringify(mappedData));
             localStorage.setItem("epistula_job_description", jobDescription);
             if (file) {
                 localStorage.setItem("epistula_resume_filename", file.name);
             }
-        }, 1500);
+        } catch (error) {
+            console.error("Error parsing documents:", error);
+            alert("There was an error parsing your documents. Please try again.");
+        }
     };
 
     const handleAnalyze = () => {
         setIsAnalyzing(true);
+        if (fullParseData) {
+            localStorage.setItem("epistula_parsed_jd", JSON.stringify(fullParseData.parsed_jd));
+            localStorage.setItem("epistula_parsed_resume", JSON.stringify(fullParseData.parsed_resume));
+            localStorage.setItem("epistula_raw_resume", fullParseData.raw_resume);
+            localStorage.setItem("epistula_analysis_data", JSON.stringify(extractData));
+        }
     };
 
     const handleAnalysisComplete = () => {
@@ -98,6 +110,21 @@ export default function AnalyzePage() {
                 [field]: value
             }
         }));
+
+        if (fullParseData) {
+            const newFullData = { ...fullParseData };
+            if (category === 'resume' && newFullData.parsed_resume) {
+                if (field === 'fullName') newFullData.parsed_resume.name = value;
+                if (field === 'email') newFullData.parsed_resume.email = value;
+                if (field === 'experience') newFullData.parsed_resume.experience = parseInt(value) || value;
+            } else if (category === 'job' && newFullData.parsed_jd) {
+                if (field === 'companyName') newFullData.parsed_jd.company = value;
+                if (field === 'jobTitle') newFullData.parsed_jd.title = value;
+                if (field === 'location') newFullData.parsed_jd.location = value;
+                if (field === 'employmentType') newFullData.parsed_jd.employment_type = value;
+            }
+            setFullParseData(newFullData);
+        }
     };
 
     return (
@@ -318,14 +345,14 @@ export default function AnalyzePage() {
                 <div className="flex justify-center items-center py-12">
                     {!showResults ? (
                         <button
-                            className={`${styles.analyzeButton} ${(!file) ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
-                            disabled={!file || isProcessing}
+                            className={`${styles.analyzeButton} ${(!file || jobDescription.trim() === '') ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
+                            disabled={!file || jobDescription.trim() === '' || isPending}
                             onClick={handleUpload}
                         >
-                            {isProcessing ? (
+                            {isPending ? (
                                 <>
                                     <span className="material-icons-round animate-spin">refresh</span>
-                                    Uploading...
+                                    Parsing...
                                 </>
                             ) : (
                                 <>

@@ -8,6 +8,8 @@ const jakarta = Plus_Jakarta_Sans({
   display: "swap",
 });
 
+import Providers from "@/components/Providers";
+
 export const metadata: Metadata = {
   title: "Epistula AI",
   description: "AI Resume Analyzer & Cover Letter Generator",
@@ -28,7 +30,9 @@ export default function RootLayout({
       <body
         className={`${jakarta.variable} antialiased`}
       >
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );
