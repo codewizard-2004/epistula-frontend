@@ -1,22 +1,125 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { supabase } from "@/lib/supabase"
 import RecentGenerationItem from "./RecentGenerationItem"
 
+type ActivityItem = {
+    id: string;
+    title: string;
+    typeItem: string;
+    createdAt: string;
+    onClick: () => void;
+}
+
+function formatTimeAgo(dateString: string) {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return `Just now`;
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hours ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return `Yesterday`;
+    if (diffInDays < 30) return `${diffInDays} days ago`;
+    return date.toLocaleDateString();
+}
+
 export default function RecentGeneration() {
+    const [activities, setActivities] = useState<ActivityItem[]>([]);
+    const [loading, setLoading] = useState(true);
+    const router = useRouter();
+
+    useEffect(() => {
+        const fetchActivities = async () => {
+            try {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
+
+                // Fetch Generations
+                const { data: genData } = await supabase
+                    .from("GENERATION_RESULT")
+                    .select("id, name, created_at")
+                    .eq("user_id", user.id);
+
+                // Fetch Analyses
+                const { data: jobData } = await supabase
+                    .from("ANALYSIS_JOB")
+                    .select(`
+                        id,
+                        generation_name,
+                        ANALYSIS_RESULT (
+                            result_id,
+                            created_at
+                        )
+                    `)
+                    .eq("user_id", user.id);
+
+                const fetchedActivities: ActivityItem[] = [];
+
+                if (genData) {
+                    genData.forEach((gen) => {
+                        fetchedActivities.push({
+                            id: gen.id,
+                            title: gen.name || "Draft Generation",
+                            typeItem: "Cover Letter",
+                            createdAt: gen.created_at,
+                            onClick: () => router.push(`/analyze/generation?id=${gen.id}`)
+                        });
+                    });
+                }
+
+                if (jobData) {
+                    jobData.forEach((job: any) => {
+                        if (job.ANALYSIS_RESULT) {
+                            const results = Array.isArray(job.ANALYSIS_RESULT) ? job.ANALYSIS_RESULT : [job.ANALYSIS_RESULT];
+                            results.forEach((res: any) => {
+                                fetchedActivities.push({
+                                    id: res.result_id,
+                                    title: job.generation_name || "Resume Analysis",
+                                    typeItem: "Analysis",
+                                    createdAt: res.created_at,
+                                    onClick: () => router.push(`/analyze/result?id=${res.result_id}`)
+                                });
+                            });
+                        }
+                    });
+                }
+
+                fetchedActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                setActivities(fetchedActivities.slice(0, 5));
+            } catch (err) {
+                console.error("Failed to fetch activities", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchActivities();
+    }, [router]);
+
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Recent Generations</h3>
-                <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-1 flex items-center cursor-pointer">
-                    <span className="text-xs font-semibold px-2 text-gray-600 dark:text-gray-300">All</span>
-                    <span className="material-icons-round text-sm text-gray-400">expand_more</span>
-                </div>
-            </div>
-            <div className="space-y-2">
-                <RecentGenerationItem title="Software Engineer XCorps" typeItem="Cover Letter" time="2 hours ago" />
-                <RecentGenerationItem title="Product Designer Meta" typeItem="Analysis" time="2 hours ago" />
-                <RecentGenerationItem title="Data Analyst Stripe" typeItem="Analysis" time="2 hours ago" />
-                <RecentGenerationItem title="Data Analyst Stripe" typeItem="Cover Email x" time="2 hours ago" />
+        <div className="flex flex-col h-full w-full">
+            <div className="space-y-6">
+                {loading ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">Loading...</p>
+                ) : activities.length > 0 ? (
+                    activities.map((item) => (
+                        <RecentGenerationItem
+                            key={`${item.typeItem}-${item.id}`}
+                            title={item.title}
+                            typeItem={item.typeItem}
+                            time={formatTimeAgo(item.createdAt)}
+                            onClick={item.onClick}
+                        />
+                    ))
+                ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No recent activity found.</p>
+                )}
             </div>
         </div>
     )

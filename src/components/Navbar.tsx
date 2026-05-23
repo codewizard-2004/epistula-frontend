@@ -4,10 +4,12 @@ import { useState, useEffect } from "react";
 import styles from "./navbar.module.css";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function Navbar() {
     const [isDark, setIsDark] = useState(false);
     const pathname = usePathname();
+    const [userName, setUserName] = useState("U");
 
     useEffect(() => {
         if (
@@ -21,6 +23,27 @@ export default function Navbar() {
             setIsDark(false);
             document.documentElement.classList.remove("dark");
         }
+
+        const fetchUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                const { data, error } = await supabase
+                    .from("USERS")
+                    .select("name")
+                    .eq("id", user.id)
+                    .single();
+
+                if (data && data.name) {
+                    setUserName(data.name);
+                } else if (user.user_metadata?.full_name) {
+                    setUserName(user.user_metadata.full_name);
+                } else if (user.email) {
+                    setUserName(user.email);
+                }
+            }
+        };
+        
+        fetchUser();
     }, []);
 
     const toggleTheme = () => {
@@ -76,10 +99,7 @@ export default function Navbar() {
                     href="/profile"
                     className={`${styles.profilePic} ${isActive('/profile') ? 'ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-slate-900' : ''}`}
                 >
-                    <img
-                        alt="User Profile"
-                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBicSWD_kQyrbudKa2pZLs3ZcAkdJpZ8E66OiP0djkNN_Fnxe6vPpMWbyU_30qVTDqP9A3kJZ3BEgQL5VhjpPM1rNoZAVjrgAP2PFTCYPoNnOJzRCS1z9vdbwAgOIRdrFITU4prvRWlLS3ISMP8dm7q6mF-dQGC4NOCIhDfOC-CA6px1jU9aGdr_DQyY8cQJkExwHXvnTXLVpLzQTs_MU2bmPHWGeg4Anhea2kZFASYncm6mhANxuLO_RXs4Xs4AYRz8Wv1KZ2UseU"
-                    />
+                    {userName.charAt(0).toUpperCase()}
                 </Link>
             </div>
         </header>
