@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import styles from "./profile.module.css";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function ProfilePage() {
+    const router = useRouter();
     const [user, setUser] = useState({
         name: "Alex Dev",
         email: "alex.dev@example.com",
@@ -19,6 +22,39 @@ export default function ProfilePage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [deleteConfirmation, setDeleteConfirmation] = useState("");
     const confirmationPhrase = "Yes, delete my account";
+
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (!authUser) {
+                router.push("/auth/login");
+                return;
+            }
+
+            // Fetch name from USERS table
+            const { data: dbUser } = await supabase
+                .from("USERS")
+                .select("name")
+                .eq("id", authUser.id)
+                .single();
+
+            const displayName = dbUser?.name || authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "User";
+            const displayEmail = authUser.email || "";
+
+            setUser(prev => ({
+                ...prev,
+                name: displayName,
+                email: displayEmail,
+            }));
+        };
+
+        fetchUserProfile();
+    }, [router]);
+
+    const handleSignOut = async () => {
+        await supabase.auth.signOut();
+        router.push("/auth/login");
+    };
 
     const history = [
         { id: 1, uuid: "an-782b-9x", type: "analysis", title: "Senior Frontend Developer", company: "Google", date: "2 hours ago" },
@@ -79,7 +115,10 @@ export default function ProfilePage() {
                                 </div>
                             </div>
 
-                            <button className="mt-8 text-slate-500 dark:text-slate-400 text-xs font-semibold flex items-center gap-2 hover:text-indigo-500 transition">
+                            <button 
+                                onClick={handleSignOut}
+                                className="mt-8 text-slate-500 dark:text-slate-400 text-xs font-semibold flex items-center gap-2 hover:text-indigo-500 transition cursor-pointer"
+                            >
                                 <span className="material-icons-round text-sm">logout</span>
                                 Sign Out
                             </button>

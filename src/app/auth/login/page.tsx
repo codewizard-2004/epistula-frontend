@@ -3,11 +3,39 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 
 export default function LoginPage() {
     const [isDark, setIsDark] = useState(false);
     const router = useRouter();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [loading, setLoading] = useState(false);
+
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setErrorMsg(null);
+        setLoading(true);
+
+        try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+
+            if (error) {
+                throw error;
+            }
+
+            // Move straight to dashboard page
+            router.push("/dashboard");
+        } catch (err: any) {
+            setErrorMsg(err.message || "An error occurred during login");
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
         // Check system preference or local storage on mount
@@ -24,6 +52,16 @@ export default function LoginPage() {
         }
     }, []);
 
+    useEffect(() => {
+        const checkActiveSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                router.push("/dashboard");
+            }
+        };
+        checkActiveSession();
+    }, [router]);
+
     const toggleTheme = () => {
         if (isDark) {
             document.documentElement.classList.remove("dark");
@@ -37,8 +75,8 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="font-body bg-background-light dark:bg-background-dark min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors duration-300">
-            <div className="w-full max-w-7xl bg-white/60 dark:bg-surface-dark/60 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row min-h-[800px] border border-white/20 dark:border-slate-700/50 glass-effect">
+        <div className="font-body bg-background-light dark:bg-background-dark h-screen w-screen overflow-hidden flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+            <div className="w-full max-w-7xl bg-white/60 dark:bg-surface-dark/60 rounded-3xl shadow-2xl overflow-hidden flex flex-col lg:flex-row h-full max-h-[800px] border border-white/20 dark:border-slate-700/50 glass-effect">
 
                 {/* Left Side - Visual & Marketing */}
                 <div className="hidden lg:flex lg:w-1/2 relative flex-col justify-between p-12 overflow-hidden bg-gradient-mesh dark:bg-dark-gradient-mesh">
@@ -140,7 +178,7 @@ export default function LoginPage() {
                 </div>
 
                 {/* Right Side - Login Form */}
-                <div className="w-full lg:w-1/2 bg-white dark:bg-surface-dark flex flex-col justify-center items-center p-8 sm:p-12 lg:p-16 relative">
+                <div className="w-full lg:w-1/2 bg-white dark:bg-surface-dark flex flex-col items-center py-8 px-6 sm:p-12 lg:p-16 relative overflow-y-auto max-h-full">
 
                     {/* Mobile Header */}
                     <div className="lg:hidden absolute top-8 left-8 flex items-center gap-2">
@@ -167,7 +205,7 @@ export default function LoginPage() {
                         )}
                     </button>
 
-                    <div className="w-full max-w-md space-y-8">
+                    <div className="w-full max-w-md space-y-6 lg:space-y-8 my-auto">
                         <div className="text-center lg:text-left">
                             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
                                 Welcome Back
@@ -176,6 +214,12 @@ export default function LoginPage() {
                                 Please enter your details to access your workspace.
                             </p>
                         </div>
+
+                        {errorMsg && (
+                            <div className="p-4 mb-4 text-sm text-red-800 rounded-xl bg-red-50 dark:bg-red-950/30 dark:text-red-400 border border-red-200 dark:border-red-800/30" role="alert">
+                                <span className="font-medium">Error:</span> {errorMsg}
+                            </div>
+                        )}
 
                         {/* Social Login */}
                         <div className="flex flex-col sm:flex-row gap-4">
@@ -209,8 +253,8 @@ export default function LoginPage() {
                         </div>
 
                         {/* Email Form */}
-                        <form action="#" className="space-y-6" method="POST">
-                            <div className="space-y-5">
+                        <form onSubmit={handleLogin} className="space-y-4 lg:space-y-6">
+                            <div className="space-y-4 lg:space-y-5">
                                 <div>
                                     <label
                                         className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ml-1"
@@ -231,6 +275,8 @@ export default function LoginPage() {
                                             placeholder="name@company.com"
                                             required
                                             type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -262,6 +308,8 @@ export default function LoginPage() {
                                             placeholder="••••••••"
                                             required
                                             type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -281,11 +329,11 @@ export default function LoginPage() {
                                 </label>
                             </div>
                             <button
-                                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:-translate-y-0.5 shadow-lg shadow-gray-200 dark:shadow-none cursor-pointer"
+                                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-xl shadow-sm text-sm font-bold text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 transform hover:-translate-y-0.5 shadow-lg shadow-gray-200 dark:shadow-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 type="submit"
-                                onClick={() => router.push("/pricing")}
+                                disabled={loading}
                             >
-                                Sign in to Dashboard
+                                {loading ? "Signing in..." : "Sign in to Dashboard"}
                             </button>
                         </form>
                         <p className="text-center text-sm text-gray-500 dark:text-gray-400">

@@ -167,7 +167,7 @@
     border: 1px solid #fee2e2;
     border-radius: 1.5rem;
     padding: 1.5rem;
-    flex: 1;
+    flex: none;
     overflow-y: auto;
 }
 
@@ -181,8 +181,7 @@
     border: 1px solid #e0f2fe;
     border-radius: 1.5rem;
     padding: 1.5rem;
-    flex: 1;
-    overflow-y: auto;
+    flex: none;
 }
 
 :global(.dark) .sectionImprovements {

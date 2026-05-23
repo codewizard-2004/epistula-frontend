@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import styles from "./pricing.module.css";
-import Navbar from "@/components/Navbar";
 import { useRouter } from "next/navigation";
 
 export default function PricingPage() {
@@ -11,7 +10,6 @@ export default function PricingPage() {
 
     return (
         <div className="font-body min-h-screen transition-colors duration-300 overflow-x-clip relative">
-            <Navbar />
 
             {/* Background Effects */}
             <div className={`fixed inset-0 -z-10 ${styles.gradientMesh}`}></div>
@@ -20,7 +18,7 @@ export default function PricingPage() {
                 <div className={styles.blob2}></div>
             </div>
 
-            <main className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
+            <main className="pt-20 pb-20 px-6 max-w-7xl mx-auto">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 tracking-tight">
                         Choose Your Career Catalyst

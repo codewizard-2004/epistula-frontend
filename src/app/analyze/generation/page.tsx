@@ -4,12 +4,16 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import Navbar from "@/components/Navbar";
 import styles from "./generation.module.css";
 import { useSearchParams } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 
 function GenerationContent() {
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<"cover-letter" | "cover-email">("cover-letter");
     const [tone, setTone] = useState<"professional" | "casual" | "confident">("professional");
     const [draft, setDraft] = useState("");
+    const [isGenerated, setIsGenerated] = useState(false);
+    const [isGenerating, setIsGenerating] = useState(false);
     const [analysisData, setAnalysisData] = useState<any>(null);
     const [jobDescription, setJobDescription] = useState("");
     const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -65,16 +69,11 @@ function GenerationContent() {
         const source = searchParams.get("source");
 
         if (source === "direct") {
-            setAnalysisData({
-                job: {
-                    jobTitle: "",
-                    companyName: "",
-                    location: "",
-                }
-            });
+            setAnalysisData({ job: { jobTitle: "", companyName: "", location: "" } });
             setJobDescription("");
             setOriginalFilename("");
             setDraft("");
+            return;
         }
 
         if (type === "email") {
@@ -82,37 +81,81 @@ function GenerationContent() {
         } else if (type === "letter") {
             setActiveTab("cover-letter");
         }
-    }, [searchParams]);
 
-    useEffect(() => {
-        // Load data from localStorage
-        const storedData = localStorage.getItem("epistula_analysis_data");
-        const storedJob = localStorage.getItem("epistula_job_description");
-        const storedFilename = localStorage.getItem("epistula_resume_filename");
+        const fetchFromDb = async (resultId: string) => {
+            try {
+                const { data, error } = await supabase
+                    .from('ANALYSIS_RESULT')
+                    .select(`
+                        *,
+                        ANALYSIS_JOB (
+                            parsed_job_desc,
+                            job_desc,
+                            resume_file
+                        )
+                    `)
+                    .eq('result_id', resultId)
+                    .single();
 
-        if (storedData) {
-            setAnalysisData(JSON.parse(storedData));
-        } else {
-            // Fallback mock data if none found
-            setAnalysisData({
-                job: {
-                    jobTitle: "Senior Frontend Developer",
-                    companyName: "TechCorp Inc.",
-                    location: "Remote",
+                if (error) throw error;
+
+                if (data && data.ANALYSIS_JOB) {
+                    const jobDetails = data.ANALYSIS_JOB;
+                    setAnalysisData({
+                        job: {
+                            jobTitle: jobDetails.parsed_job_desc?.title || "Target Role",
+                            companyName: jobDetails.parsed_job_desc?.company || "Company",
+                            location: jobDetails.parsed_job_desc?.location || "Location",
+                        }
+                    });
+                    setJobDescription(jobDetails.job_desc || "");
+                    
+                    if (jobDetails.resume_file) {
+                        const parts = jobDetails.resume_file.split('/');
+                        setOriginalFilename(parts[parts.length - 1]);
+                    }
+                    return true;
                 }
+            } catch (err) {
+                console.error("Failed to fetch from DB", err);
+            }
+            return false;
+        };
+
+        const loadFallback = () => {
+            const storedData = localStorage.getItem("epistula_analysis_data");
+            const storedJob = localStorage.getItem("epistula_job_description");
+            const storedFilename = localStorage.getItem("epistula_resume_filename");
+
+            if (storedData) {
+                const pData = JSON.parse(storedData);
+                setAnalysisData({
+                    job: {
+                        jobTitle: pData.parsed_jd?.title || "Target Role",
+                        companyName: pData.parsed_jd?.company || "Company",
+                        location: pData.parsed_jd?.location || "Location",
+                    }
+                });
+            } else {
+                setAnalysisData({
+                    job: { jobTitle: "Senior Frontend Developer", companyName: "TechCorp Inc.", location: "Remote" }
+                });
+            }
+
+            if (storedJob) setJobDescription(storedJob);
+            else setJobDescription("We are looking for an experienced Frontend Developer... 5+ years of experience with React and Tailwind CSS... UI/UX principles.");
+
+            if (storedFilename) setOriginalFilename(storedFilename);
+        };
+
+        if (id) {
+            fetchFromDb(id).then(success => {
+                if (!success) loadFallback();
             });
-        }
-
-        if (storedJob) {
-            setJobDescription(storedJob);
         } else {
-            setJobDescription("We are looking for an experienced Frontend Developer... 5+ years of experience with React and Tailwind CSS... UI/UX principles.");
+            loadFallback();
         }
-
-        if (storedFilename) {
-            setOriginalFilename(storedFilename);
-        }
-    }, []);
+    }, [searchParams]);
 
     const coverLetterTemplate = `Dear Hiring Manager,
 
@@ -138,11 +181,21 @@ Attached is my resume. I'd love to chat more about how my background fits your c
 Best,
 Alex Dev`;
 
+    const handleGenerate = () => {
+        setIsGenerating(true);
+        // Simulate API generation delay
+        setTimeout(() => {
+            setDraft(activeTab === "cover-letter" ? coverLetterTemplate : coverEmailTemplate);
+            setIsGenerated(true);
+            setIsGenerating(false);
+        }, 1500);
+    };
+
     useEffect(() => {
-        if (analysisData) {
+        if (analysisData && isGenerated) {
             setDraft(activeTab === "cover-letter" ? coverLetterTemplate : coverEmailTemplate);
         }
-    }, [activeTab, analysisData]);
+    }, [activeTab, analysisData, isGenerated]);
 
     return (
         <div className="font-body h-screen transition-colors duration-300 overflow-hidden relative flex flex-col">
@@ -188,7 +241,9 @@ Alex Dev`;
                                 </button>
                             </div>
                             <div className={styles.jobContent}>
-                                {isEditingJob ? (
+                                {!analysisData ? (
+                                    <LoadingSkeleton />
+                                ) : isEditingJob ? (
                                     <div className="space-y-3 mb-3">
                                         <input
                                             type="text"
@@ -310,17 +365,37 @@ Alex Dev`;
                             </div>
 
                             <div className={styles.editorBody}>
-                                <textarea
-                                    className={styles.textarea + " custom-scrollbar"}
-                                    value={draft}
-                                    onChange={(e) => setDraft(e.target.value)}
-                                    spellCheck="false"
-                                />
+                                {!isGenerated ? (
+                                    <div className="flex-1 flex flex-col items-center justify-center h-full">
+                                        <button 
+                                            className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                                            onClick={handleGenerate}
+                                            disabled={isGenerating || !analysisData}
+                                        >
+                                            <span className={`material-icons-round ${isGenerating ? 'animate-spin' : ''}`}>
+                                                {isGenerating ? 'refresh' : 'auto_awesome'}
+                                            </span>
+                                            {isGenerating ? 'Generating...' : `Generate ${activeTab === "cover-letter" ? "Cover Letter" : "Cover Email"}`}
+                                        </button>
+                                        <p className="text-slate-400 mt-4 text-sm max-w-sm text-center">Click generate to draft a personalized response using your resume and the provided job description.</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <textarea
+                                            className={styles.textarea + " custom-scrollbar"}
+                                            value={draft}
+                                            onChange={(e) => setDraft(e.target.value)}
+                                            spellCheck="false"
+                                        />
 
-                                <button className={styles.regenerateBtn}>
-                                    <span className="material-icons-round text-sm">auto_fix_high</span>
-                                    <span>Regenerate</span>
-                                </button>
+                                        <button className={styles.regenerateBtn} onClick={handleGenerate} disabled={isGenerating}>
+                                            <span className={`material-icons-round text-sm ${isGenerating ? 'animate-spin' : ''}`}>
+                                                {isGenerating ? 'refresh' : 'auto_fix_high'}
+                                            </span>
+                                            <span>{isGenerating ? 'Regenerating...' : 'Regenerate'}</span>
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
                             <div className={styles.footerActions}>

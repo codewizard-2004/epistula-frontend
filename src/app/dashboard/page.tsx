@@ -1,9 +1,44 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import RecentGeneration from "@/components/RecentGeneration";
 import styles from "./dashboard.module.css";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/lib/supabase";
 
 export default function DashboardPage() {
+    const router = useRouter();
+    const [userName, setUserName] = useState("Alex");
+
+    useEffect(() => {
+        const checkUser = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push("/auth/login");
+                return;
+            }
+
+            // Fetch name from USERS table using user.id
+            const { data, error } = await supabase
+                .from("USERS")
+                .select("name")
+                .eq("id", user.id)
+                .single();
+
+            if (data && data.name) {
+                setUserName(data.name);
+            } else if (user.user_metadata?.full_name) {
+                setUserName(user.user_metadata.full_name);
+            } else if (user.email) {
+                const emailUser = user.email.split("@")[0];
+                setUserName(emailUser.charAt(0).toUpperCase() + emailUser.slice(1));
+            }
+        };
+
+        checkUser();
+    }, [router]);
     return (
         <div className="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark min-h-screen transition-colors duration-300 relative overflow-x-clip">
             {/* Background Effects */}
@@ -20,7 +55,7 @@ export default function DashboardPage() {
                     {/* Welcome Header */}
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
                         <div>
-                            <h2 className={styles.welcomeTitle}>Good morning, Alex 👋</h2>
+                            <h2 className={styles.welcomeTitle}>Good morning, {userName} 👋</h2>
                             <p className="text-gray-500 dark:text-gray-400 mt-2 text-lg">
                                 Your job search is on track — 3 new matches since yesterday.
                             </p>

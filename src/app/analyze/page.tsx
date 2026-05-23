@@ -1,34 +1,24 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./analyze.module.css";
 import Navbar from "@/components/Navbar";
 import LoadingModal from "@/components/LoadingModal";
-import { useParseDocument } from "@/hooks/useParseDocument";
+import { useParser } from "@/hooks/useParser";
+import { useAnalyze } from "@/hooks/useAnalyze";
+import { supabase } from "@/lib/supabase";
 
 export default function AnalyzePage() {
     const [file, setFile] = useState<File | null>(null);
-    const { mutateAsync: parseDocument, isPending } = useParseDocument();
-    const [extractData, setExtractData] = useState({
-        resume: {
-            fullName: "",
-            email: "",
-            currentRole: "",
-            experience: ""
-        },
-        job: {
-            companyName: "",
-            jobTitle: "",
-            location: "",
-            employmentType: ""
-        }
-    });
+    const [parsedData, setParsedData] = useState<any>(null);
     const [showResults, setShowResults] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [jobDescription, setJobDescription] = useState("");
-    const [fullParseData, setFullParseData] = useState<any>(null);
+    const insertedJobIdRef = useRef<string | null>(null);
 
+    const { parse, isParsing: isParsingHook } = useParser();
+    const { analyze } = useAnalyze();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
 
@@ -39,57 +29,92 @@ export default function AnalyzePage() {
     };
 
     const handleUpload = async () => {
-        if (!file || jobDescription.trim() === '') return;
-        
-        try {
-            const data = await parseDocument({ file, jobDescription });
-            setFullParseData(data);
+        if (!file || !jobDescription) {
+            alert("Please provide both a resume file and a job description.");
+            return;
+        }
 
-            const mappedData = {
-                resume: {
-                    fullName: data.parsed_resume?.name || "",
-                    email: data.parsed_resume?.email || "",
-                    currentRole: "",
-                    experience: data.parsed_resume?.experience ? `${data.parsed_resume.experience} years` : ""
-                },
-                job: {
-                    companyName: data.parsed_jd?.company || "",
-                    jobTitle: data.parsed_jd?.title || "",
-                    location: data.parsed_jd?.location || "",
-                    employmentType: data.parsed_jd?.employment_type || ""
-                }
-            };
-
-            setExtractData(mappedData);
+        const data = await parse(file, jobDescription);
+        if (data) {
+            setParsedData(data);
             setShowResults(true);
+        }
+    };
+
+    const handleAnalyze = async () => {
+        setIsAnalyzing(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("User not authenticated");
+
+            let resumeFilePath = "";
+            if (file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+                const filePath = `${user.id}/${fileName}`;
+                
+                const { error: uploadError } = await supabase.storage
+                    .from('resumes')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+                resumeFilePath = filePath;
+            }
+
+            const { data: insertData, error: insertError } = await supabase
+                .from('ANALYSIS_JOB')
+                .insert({
+                    generation_name: `${parsedData.parsed_jd?.title || 'Job'} at ${parsedData.parsed_jd?.company || 'Company'}`,
+                    user_id: user.id,
+                    resume_file: resumeFilePath,
+                    parsed_resume: parsedData.parsed_resume,
+                    job_desc: jobDescription,
+                    parsed_job_desc: parsedData.parsed_jd,
+                })
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+
+            // Call analyze API
+            const analyzeResult = await analyze(parsedData.parsed_jd, parsedData.parsed_resume, parsedData.raw_resume);
+            if (!analyzeResult) throw new Error("Analysis API failed");
+
+            // Insert to ANALYSIS_RESULT
+            const { data: resultData, error: resultError } = await supabase
+                .from('ANALYSIS_RESULT')
+                .insert({
+                    job_id: insertData.id,
+                    match_result: analyzeResult.match_analysis,
+                    ats_result: analyzeResult.ats_result
+                })
+                .select()
+                .single();
+
+            if (resultError) throw resultError;
 
             // Persist for other pages
-            localStorage.setItem("epistula_analysis_data", JSON.stringify(mappedData));
+            localStorage.setItem("epistula_analysis_data", JSON.stringify(parsedData));
             localStorage.setItem("epistula_job_description", jobDescription);
             if (file) {
                 localStorage.setItem("epistula_resume_filename", file.name);
             }
+
+            insertedJobIdRef.current = resultData.result_id;
+            
+            // Route explicitly when the API and DB operations are complete
+            router.push(`/analyze/result?id=${resultData.result_id}`);
+
         } catch (error) {
-            console.error("Error parsing documents:", error);
-            alert("There was an error parsing your documents. Please try again.");
+            console.error("Analysis failed:", error);
+            setIsAnalyzing(false);
         }
     };
 
-    const handleAnalyze = () => {
-        setIsAnalyzing(true);
-        if (fullParseData) {
-            localStorage.setItem("epistula_parsed_jd", JSON.stringify(fullParseData.parsed_jd));
-            localStorage.setItem("epistula_parsed_resume", JSON.stringify(fullParseData.parsed_resume));
-            localStorage.setItem("epistula_raw_resume", fullParseData.raw_resume);
-            localStorage.setItem("epistula_analysis_data", JSON.stringify(extractData));
-        }
-    };
-
-    const handleAnalysisComplete = () => {
-        setIsAnalyzing(false);
-        const newUuid = `an-${Math.random().toString(36).substring(2, 11)}`;
-        router.push(`/analyze/result?id=${newUuid}`);
-    };
+    const handleAnalysisComplete = useCallback(() => {
+        // Do nothing here to avoid race conditions. 
+        // The router push is handled inside handleAnalyze when the API finishes.
+    }, []);
 
     const analysisSteps = [
         { title: "Document Uploaded", description: "Source file successfully parsed and validated." },
@@ -102,29 +127,14 @@ export default function AnalyzePage() {
         fileInputRef.current?.click();
     };
 
-    const handleInputChange = (category: 'resume' | 'job', field: string, value: string) => {
-        setExtractData(prev => ({
+    const handleInputChange = (category: 'parsed_resume' | 'parsed_jd', field: string, value: string) => {
+        setParsedData((prev: any) => ({
             ...prev,
             [category]: {
                 ...prev[category],
                 [field]: value
             }
         }));
-
-        if (fullParseData) {
-            const newFullData = { ...fullParseData };
-            if (category === 'resume' && newFullData.parsed_resume) {
-                if (field === 'fullName') newFullData.parsed_resume.name = value;
-                if (field === 'email') newFullData.parsed_resume.email = value;
-                if (field === 'experience') newFullData.parsed_resume.experience = parseInt(value) || value;
-            } else if (category === 'job' && newFullData.parsed_jd) {
-                if (field === 'companyName') newFullData.parsed_jd.company = value;
-                if (field === 'jobTitle') newFullData.parsed_jd.title = value;
-                if (field === 'location') newFullData.parsed_jd.location = value;
-                if (field === 'employmentType') newFullData.parsed_jd.employment_type = value;
-            }
-            setFullParseData(newFullData);
-        }
     };
 
     return (
@@ -256,8 +266,8 @@ export default function AnalyzePage() {
                                         <input
                                             type="text"
                                             className={styles.editableInput}
-                                            value={extractData.resume.fullName}
-                                            onChange={(e) => handleInputChange('resume', 'fullName', e.target.value)}
+                                            value={parsedData?.parsed_resume?.name || ''}
+                                            onChange={(e) => handleInputChange('parsed_resume', 'name', e.target.value)}
                                         />
                                     </div>
                                     <div className={styles.inputGroup}>
@@ -265,17 +275,17 @@ export default function AnalyzePage() {
                                         <input
                                             type="email"
                                             className={styles.editableInput}
-                                            value={extractData.resume.email}
-                                            onChange={(e) => handleInputChange('resume', 'email', e.target.value)}
+                                            value={parsedData?.parsed_resume?.email || ''}
+                                            onChange={(e) => handleInputChange('parsed_resume', 'email', e.target.value)}
                                         />
                                     </div>
                                     <div className={styles.inputGroup}>
-                                        <label className={styles.inputLabel}>Current Role</label>
+                                        <label className={styles.inputLabel}>Location / Phone</label>
                                         <input
                                             type="text"
                                             className={styles.editableInput}
-                                            value={extractData.resume.currentRole}
-                                            onChange={(e) => handleInputChange('resume', 'currentRole', e.target.value)}
+                                            value={parsedData?.parsed_resume?.location || parsedData?.parsed_resume?.phone || ''}
+                                            onChange={(e) => handleInputChange('parsed_resume', 'location', e.target.value)}
                                         />
                                     </div>
                                     <div className={styles.inputGroup}>
@@ -283,8 +293,8 @@ export default function AnalyzePage() {
                                         <input
                                             type="text"
                                             className={styles.editableInput}
-                                            value={extractData.resume.experience}
-                                            onChange={(e) => handleInputChange('resume', 'experience', e.target.value)}
+                                            value={parsedData?.parsed_resume?.experience || ''}
+                                            onChange={(e) => handleInputChange('parsed_resume', 'experience', e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -305,8 +315,8 @@ export default function AnalyzePage() {
                                         <input
                                             type="text"
                                             className={styles.editableInput}
-                                            value={extractData.job.companyName}
-                                            onChange={(e) => handleInputChange('job', 'companyName', e.target.value)}
+                                            value={parsedData?.parsed_jd?.company || ''}
+                                            onChange={(e) => handleInputChange('parsed_jd', 'company', e.target.value)}
                                         />
                                     </div>
                                     <div className={styles.inputGroup}>
@@ -314,8 +324,8 @@ export default function AnalyzePage() {
                                         <input
                                             type="text"
                                             className={styles.editableInput}
-                                            value={extractData.job.jobTitle}
-                                            onChange={(e) => handleInputChange('job', 'jobTitle', e.target.value)}
+                                            value={parsedData?.parsed_jd?.title || ''}
+                                            onChange={(e) => handleInputChange('parsed_jd', 'title', e.target.value)}
                                         />
                                     </div>
                                     <div className={styles.inputGroup}>
@@ -323,8 +333,8 @@ export default function AnalyzePage() {
                                         <input
                                             type="text"
                                             className={styles.editableInput}
-                                            value={extractData.job.location}
-                                            onChange={(e) => handleInputChange('job', 'location', e.target.value)}
+                                            value={parsedData?.parsed_jd?.location || ''}
+                                            onChange={(e) => handleInputChange('parsed_jd', 'location', e.target.value)}
                                         />
                                     </div>
                                     <div className={styles.inputGroup}>
@@ -332,8 +342,8 @@ export default function AnalyzePage() {
                                         <input
                                             type="text"
                                             className={styles.editableInput}
-                                            value={extractData.job.employmentType}
-                                            onChange={(e) => handleInputChange('job', 'employmentType', e.target.value)}
+                                            value={parsedData?.parsed_jd?.employment_type || ''}
+                                            onChange={(e) => handleInputChange('parsed_jd', 'employment_type', e.target.value)}
                                         />
                                     </div>
                                 </div>
@@ -345,14 +355,14 @@ export default function AnalyzePage() {
                 <div className="flex justify-center items-center py-12">
                     {!showResults ? (
                         <button
-                            className={`${styles.analyzeButton} ${(!file || jobDescription.trim() === '') ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
-                            disabled={!file || jobDescription.trim() === '' || isPending}
+                            className={`${styles.analyzeButton} ${(!file || !jobDescription) ? 'opacity-50 cursor-not-allowed shadow-none' : ''}`}
+                            disabled={!file || !jobDescription || isParsingHook}
                             onClick={handleUpload}
                         >
-                            {isPending ? (
+                            {isParsingHook ? (
                                 <>
                                     <span className="material-icons-round animate-spin">refresh</span>
-                                    Parsing...
+                                    Uploading...
                                 </>
                             ) : (
                                 <>
