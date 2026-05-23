@@ -6,24 +6,31 @@ import styles from "./generation.module.css";
 import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
+import { useParser } from "@/hooks/useParser";
 
 function GenerationContent() {
     const searchParams = useSearchParams();
     const [activeTab, setActiveTab] = useState<"cover-letter" | "cover-email">("cover-letter");
     const [tone, setTone] = useState<"professional" | "casual" | "confident">("professional");
-    const [draft, setDraft] = useState("");
+    const [drafts, setDrafts] = useState({ "cover-letter": "", "cover-email": "" });
     const [isGenerated, setIsGenerated] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
     const [analysisData, setAnalysisData] = useState<any>(null);
+    const [fullData, setFullData] = useState<any>(null);
     const [jobDescription, setJobDescription] = useState("");
     const [resumeFile, setResumeFile] = useState<File | null>(null);
     const [originalFilename, setOriginalFilename] = useState("");
     const [sidebarWidth, setSidebarWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
-    const [isEditingJob, setIsEditingJob] = useState(false);
+    const [isEditingJob, setIsEditingJob] = useState(!searchParams.get("id"));
     const [tempJobTitle, setTempJobTitle] = useState("");
     const [tempCompanyName, setTempCompanyName] = useState("");
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+    const [showToast, setShowToast] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const { parse, isParsing } = useParser();
+    const hasId = !!searchParams.get("id");
 
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsResizing(true);
@@ -72,7 +79,7 @@ function GenerationContent() {
             setAnalysisData({ job: { jobTitle: "", companyName: "", location: "" } });
             setJobDescription("");
             setOriginalFilename("");
-            setDraft("");
+            setDrafts({ "cover-letter": "", "cover-email": "" });
             return;
         }
 
@@ -91,7 +98,9 @@ function GenerationContent() {
                         ANALYSIS_JOB (
                             parsed_job_desc,
                             job_desc,
-                            resume_file
+                            resume_file,
+                            parsed_resume,
+                            generation_name
                         )
                     `)
                     .eq('result_id', resultId)
@@ -110,6 +119,13 @@ function GenerationContent() {
                     });
                     setJobDescription(jobDetails.job_desc || "");
                     
+                    setFullData({
+                        parsed_jd: jobDetails.parsed_job_desc,
+                        parsed_resume: jobDetails.parsed_resume,
+                        match_result: data.match_result,
+                        generation_name: jobDetails.generation_name
+                    });
+
                     if (jobDetails.resume_file) {
                         const parts = jobDetails.resume_file.split('/');
                         setOriginalFilename(parts[parts.length - 1]);
@@ -157,45 +173,145 @@ function GenerationContent() {
         }
     }, [searchParams]);
 
-    const coverLetterTemplate = `Dear Hiring Manager,
+    const handleGenerate = async () => {
+        if (!fullData && !hasId) {
+            if (!resumeFile || !jobDescription) {
+                alert("Please provide both a resume file and a job description.");
+                return;
+            }
+        }
 
-I am writing to express my strong interest in the ${analysisData?.job?.jobTitle || 'Job Title'} position at ${analysisData?.job?.companyName || 'Company Name'}. With my specialized experience in React and modern CSS frameworks like Tailwind, I was excited to see an opening that aligns so perfectly with my background.
-
-In my previous roles, I have consistently delivered high-quality frontend solutions. I noticed ${analysisData?.job?.companyName || 'TechCorp'} values performance optimization, and I believe my expertise in this area could provide immediate value to your engineering team.
-
-I have attached my resume for your review and look forward to the possibility of discussing how I can contribute to your team's success.
-
-Sincerely,
-Alex Dev`;
-
-    const coverEmailTemplate = `Subject: Application for ${analysisData?.job?.jobTitle || 'Job Title'} - Alex Dev
-
-Hi Team,
-
-I'm Alex, and I'm excited to apply for the ${analysisData?.job?.jobTitle || 'Job Title'} role at ${analysisData?.job?.companyName || 'Company Name'}. 
-
-Having spent years building high-performance React applications, I'm confident I can help your team push the boundaries of your frontend experience. I've always admired your commitment to clean UI and performance.
-
-Attached is my resume. I'd love to chat more about how my background fits your current needs.
-
-Best,
-Alex Dev`;
-
-    const handleGenerate = () => {
         setIsGenerating(true);
-        // Simulate API generation delay
-        setTimeout(() => {
-            setDraft(activeTab === "cover-letter" ? coverLetterTemplate : coverEmailTemplate);
+        try {
+            let dataForGen = fullData;
+
+            if (!dataForGen) {
+                const parseResult = await parse(resumeFile!, jobDescription);
+                if (!parseResult) throw new Error("Failed to parse document");
+
+                dataForGen = {
+                    parsed_jd: parseResult.parsed_jd,
+                    parsed_resume: parseResult.parsed_resume,
+                    match_result: { score: 100, matched_skills: [], skill_gaps: [], suggestions: [] },
+                    generation_name: `${parseResult.parsed_jd?.title || "Job"} at ${parseResult.parsed_jd?.company || "Company"}`
+                };
+                setFullData(dataForGen);
+
+                setAnalysisData({
+                    job: {
+                        jobTitle: parseResult.parsed_jd?.title || "Target Role",
+                        companyName: parseResult.parsed_jd?.company || "Company",
+                        location: parseResult.parsed_jd?.location || "Location",
+                    }
+                });
+            }
+
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+            const response = await fetch(`${apiUrl}/api/generate/generate`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    parsed_jd: dataForGen.parsed_jd,
+                    parsed_resume: dataForGen.parsed_resume,
+                    matching_analysis: dataForGen.match_result,
+                    tone: tone,
+                    generate_email: true
+                })
+            });
+
+            if (!response.ok) throw new Error("Generation failed");
+
+            const result = await response.json();
+
+            setDrafts({
+                "cover-letter": result.cover_letter || "",
+                "cover-email": result.cover_email || ""
+            });
             setIsGenerated(true);
+            setSaveSuccess(false);
+
+        } catch (err) {
+            console.error("Generation error", err);
+            alert("An error occurred during generation.");
+        } finally {
             setIsGenerating(false);
-        }, 1500);
+        }
+    };
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                alert("Please log in to save drafts.");
+                return;
+            }
+
+            const { error } = await supabase.from('GENERATION_RESULT').insert({
+                user_id: user.id,
+                name: fullData?.generation_name || "New Draft",
+                cover_letter: drafts["cover-letter"],
+                cover_email: drafts["cover-email"]
+            });
+
+            if (error) throw error;
+            setSaveSuccess(true);
+        } catch (error) {
+            console.error("Save error", error);
+            alert("Failed to save drafts.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleCopy = async () => {
+        if (!drafts[activeTab]) return;
+        try {
+            await navigator.clipboard.writeText(drafts[activeTab]);
+            setShowToast(true);
+            setTimeout(() => setShowToast(false), 3000);
+        } catch (err) {
+            console.error("Failed to copy", err);
+            alert("Failed to copy to clipboard.");
+        }
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!drafts[activeTab]) return;
+        try {
+            const { jsPDF } = await import("jspdf");
+            const doc = new jsPDF();
+            
+            const text = drafts[activeTab];
+            const lines = doc.splitTextToSize(text, 180);
+            
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(11);
+            
+            let y = 20;
+            const lineHeight = 6;
+            
+            lines.forEach((line: string) => {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+                doc.text(line, 15, y);
+                y += lineHeight;
+            });
+            
+            const companyName = analysisData?.job?.companyName || "Company";
+            const filename = `${activeTab === "cover-letter" ? "Cover_Letter" : "Cover_Email"}_${companyName}.pdf`.replace(/[^a-zA-Z0-9]/g, "_");
+            doc.save(filename);
+        } catch (err) {
+            console.error("Failed to generate PDF", err);
+            alert("Failed to generate PDF.");
+        }
     };
 
     useEffect(() => {
-        if (analysisData && isGenerated) {
-            setDraft(activeTab === "cover-letter" ? coverLetterTemplate : coverEmailTemplate);
-        }
-    }, [activeTab, analysisData, isGenerated]);
+        // Active tab relies on drafts state, no additional fetch needed when switching
+    }, [activeTab]);
 
     return (
         <div className="font-body h-screen transition-colors duration-300 overflow-hidden relative flex flex-col">
@@ -217,28 +333,29 @@ Alex Dev`;
                                     <span className="material-icons-round text-blue-500 text-lg">work</span>
                                     Job Description
                                 </h2>
-                                <button
-                                    className={`p-1.5 rounded-full transition ${isEditingJob ? "bg-primary text-white" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400"}`}
-                                    onClick={() => {
-                                        if (!isEditingJob) {
-                                            setTempJobTitle(analysisData?.job?.jobTitle || "");
-                                            setTempCompanyName(analysisData?.job?.companyName || "");
-                                        } else {
-                                            // Save changes
-                                            setAnalysisData((prev: any) => ({
-                                                ...prev,
-                                                job: {
-                                                    ...prev?.job,
-                                                    jobTitle: tempJobTitle,
-                                                    companyName: tempCompanyName
-                                                }
-                                            }));
-                                        }
-                                        setIsEditingJob(!isEditingJob);
-                                    }}
-                                >
-                                    <span className="material-icons-round text-xs">{isEditingJob ? "check" : "edit"}</span>
-                                </button>
+                                {!hasId && (
+                                    <button
+                                        className={`p-1.5 rounded-full transition ${isEditingJob ? "bg-primary text-white" : "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400"}`}
+                                        onClick={() => {
+                                            if (!isEditingJob) {
+                                                setTempJobTitle(analysisData?.job?.jobTitle || "");
+                                                setTempCompanyName(analysisData?.job?.companyName || "");
+                                            } else {
+                                                setAnalysisData((prev: any) => ({
+                                                    ...prev,
+                                                    job: {
+                                                        ...prev?.job,
+                                                        jobTitle: tempJobTitle,
+                                                        companyName: tempCompanyName
+                                                    }
+                                                }));
+                                            }
+                                            setIsEditingJob(!isEditingJob);
+                                        }}
+                                    >
+                                        <span className="material-icons-round text-xs">{isEditingJob ? "check" : "edit"}</span>
+                                    </button>
+                                )}
                             </div>
                             <div className={styles.jobContent}>
                                 {!analysisData ? (
@@ -299,8 +416,8 @@ Alex Dev`;
                                     </span>
                                 </div>
                             </div>
-                            <div className={styles.resumePreview + " group"} onClick={triggerResumeUpload}>
-                                <div className="absolute inset-0 p-6 opacity-40 blur-[1px] group-hover:blur-0 transition-all duration-300">
+                            <div className={`${styles.resumePreview} ${!hasId ? 'group cursor-pointer' : ''}`} onClick={!hasId ? triggerResumeUpload : undefined}>
+                                <div className={`absolute inset-0 p-6 ${!hasId ? 'opacity-40 blur-[1px] group-hover:blur-0 transition-all duration-300' : 'opacity-100 blur-none'}`}>
                                     <div className="w-1/2 h-4 bg-slate-400 dark:bg-slate-500 rounded mb-6"></div>
                                     <p className="text-[10px] font-bold text-slate-500 mb-2 truncate">
                                         {resumeFile ? resumeFile.name : (originalFilename || "alex_chen_resume.pdf")}
@@ -311,9 +428,11 @@ Alex Dev`;
                                         <div className="w-4/6 h-2 bg-slate-300 dark:bg-slate-600 rounded"></div>
                                     </div>
                                 </div>
-                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 backdrop-blur-[1px]">
-                                    <span className="text-xs font-bold text-primary dark:text-white bg-white/90 dark:bg-slate-800/90 px-4 py-2 rounded-lg shadow-md border border-white/20">Upload New Resume</span>
-                                </div>
+                                {!hasId && (
+                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/5 backdrop-blur-[1px]">
+                                        <span className="text-xs font-bold text-primary dark:text-white bg-white/90 dark:bg-slate-800/90 px-4 py-2 rounded-lg shadow-md border border-white/20">Upload New Resume</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </aside>
@@ -331,12 +450,24 @@ Alex Dev`;
                                 <div className="flex items-center gap-3">
                                     <span className="material-icons-round text-yellow-500">auto_awesome</span>
                                     <h2 className="text-xl font-bold text-slate-800 dark:text-white">Generated Draft</h2>
-                                    {searchParams.get("id") && (
+                                    
+                                    {saveSuccess ? (
                                         <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 rounded-full flex items-center gap-1">
-                                            <span className="material-icons-round text-[10px]">history</span>
+                                            <span className="material-icons-round text-[10px]">check_circle</span>
                                             Saved
                                         </span>
-                                    )}
+                                    ) : isGenerated ? (
+                                        <button 
+                                            className="p-1.5 bg-slate-900 dark:bg-black hover:bg-slate-800 text-white rounded-full transition shadow-sm disabled:opacity-50 flex items-center justify-center"
+                                            onClick={handleSave}
+                                            disabled={isSaving}
+                                            title="Save to Database"
+                                        >
+                                            <span className={`material-icons-round text-sm ${isSaving ? 'animate-spin' : ''}`}>
+                                                {isSaving ? 'sync' : 'save'}
+                                            </span>
+                                        </button>
+                                    ) : null}
                                 </div>
 
                                 <div className={styles.tabs}>
@@ -355,10 +486,20 @@ Alex Dev`;
                                 </div>
 
                                 <div className="flex gap-2">
-                                    <button className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 transition border border-slate-200/50 dark:border-slate-700" title="Copy">
+                                    <button 
+                                        className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 transition border border-slate-200/50 dark:border-slate-700" 
+                                        title="Copy"
+                                        onClick={handleCopy}
+                                        disabled={!isGenerated}
+                                    >
                                         <span className="material-icons-round text-sm">content_copy</span>
                                     </button>
-                                    <button className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 transition border border-slate-200/50 dark:border-slate-700" title="Download">
+                                    <button 
+                                        className="p-2 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl text-slate-500 transition border border-slate-200/50 dark:border-slate-700" 
+                                        title="Download PDF"
+                                        onClick={handleDownloadPdf}
+                                        disabled={!isGenerated}
+                                    >
                                         <span className="material-icons-round text-sm">download</span>
                                     </button>
                                 </div>
@@ -370,12 +511,12 @@ Alex Dev`;
                                         <button 
                                             className="flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                                             onClick={handleGenerate}
-                                            disabled={isGenerating || !analysisData}
+                                            disabled={isGenerating || isParsing || (hasId ? !analysisData : (!resumeFile || !jobDescription))}
                                         >
-                                            <span className={`material-icons-round ${isGenerating ? 'animate-spin' : ''}`}>
-                                                {isGenerating ? 'refresh' : 'auto_awesome'}
+                                            <span className={`material-icons-round ${isGenerating || isParsing ? 'animate-spin' : ''}`}>
+                                                {isGenerating || isParsing ? 'refresh' : 'auto_awesome'}
                                             </span>
-                                            {isGenerating ? 'Generating...' : `Generate ${activeTab === "cover-letter" ? "Cover Letter" : "Cover Email"}`}
+                                            {isGenerating || isParsing ? 'Generating...' : `Generate Drafts`}
                                         </button>
                                         <p className="text-slate-400 mt-4 text-sm max-w-sm text-center">Click generate to draft a personalized response using your resume and the provided job description.</p>
                                     </div>
@@ -383,8 +524,8 @@ Alex Dev`;
                                     <>
                                         <textarea
                                             className={styles.textarea + " custom-scrollbar"}
-                                            value={draft}
-                                            onChange={(e) => setDraft(e.target.value)}
+                                            value={drafts[activeTab]}
+                                            onChange={(e) => setDrafts(prev => ({ ...prev, [activeTab]: e.target.value }))}
                                             spellCheck="false"
                                         />
 
@@ -421,6 +562,14 @@ Alex Dev`;
                     </main>
                 </div>
             </main>
+
+            {/* Toast Notification */}
+            <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 ${showToast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}>
+                <div className="bg-slate-900 dark:bg-slate-800 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 border border-slate-700/50">
+                    <span className="material-icons-round text-green-400 text-sm">check_circle</span>
+                    <span className="text-xs font-bold tracking-wide">Copied to clipboard</span>
+                </div>
+            </div>
         </div>
     );
 }

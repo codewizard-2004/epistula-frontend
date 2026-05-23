@@ -22,6 +22,16 @@ CREATE TABLE public.ANALYSIS_RESULT (
   CONSTRAINT ANALYSIS_RESULT_pkey PRIMARY KEY (result_id),
   CONSTRAINT ANALYSIS_RESULT_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.ANALYSIS_JOB(id)
 );
+CREATE TABLE public.GENERATION_RESULT (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  cover_letter text,
+  cover_email text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT GENERATION_RESULT_pkey PRIMARY KEY (id),
+  CONSTRAINT GENERATION_RESULT_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.USERS(id)
+);
 CREATE TABLE public.USERS (
   id uuid NOT NULL,
   name text NOT NULL,
