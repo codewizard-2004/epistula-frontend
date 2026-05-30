@@ -22,7 +22,7 @@ function GenerationContent() {
     const [originalFilename, setOriginalFilename] = useState("");
     const [sidebarWidth, setSidebarWidth] = useState(320);
     const [isResizing, setIsResizing] = useState(false);
-    const [isEditingJob, setIsEditingJob] = useState(!searchParams.get("id"));
+    const [isEditingJob, setIsEditingJob] = useState(!searchParams.get("id") && !searchParams.get("genId"));
     const [tempJobTitle, setTempJobTitle] = useState("");
     const [tempCompanyName, setTempCompanyName] = useState("");
     const [isSaving, setIsSaving] = useState(false);
@@ -30,7 +30,7 @@ function GenerationContent() {
     const [showToast, setShowToast] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { parse, isParsing } = useParser();
-    const hasId = !!searchParams.get("id");
+    const hasId = !!searchParams.get("id") || !!searchParams.get("genId");
 
     const handleMouseDown = (e: React.MouseEvent) => {
         setIsResizing(true);
@@ -73,6 +73,7 @@ function GenerationContent() {
     useEffect(() => {
         const type = searchParams.get("type");
         const id = searchParams.get("id");
+        const genId = searchParams.get("genId");
         const source = searchParams.get("source");
 
         if (source === "direct") {
@@ -120,6 +121,7 @@ function GenerationContent() {
                     setJobDescription(jobDetails.job_desc || "");
                     
                     setFullData({
+                        job_id: data.job_id,
                         parsed_jd: jobDetails.parsed_job_desc,
                         parsed_resume: jobDetails.parsed_resume,
                         match_result: data.match_result,
@@ -164,7 +166,79 @@ function GenerationContent() {
             if (storedFilename) setOriginalFilename(storedFilename);
         };
 
-        if (id) {
+        const fetchGenFromDb = async (generationId: string) => {
+            try {
+                const { data, error } = await supabase
+                    .from('GENERATION_RESULT')
+                    .select(`
+                        *,
+                        ANALYSIS_JOB (
+                            parsed_job_desc,
+                            job_desc,
+                            resume_file,
+                            parsed_resume,
+                            generation_name
+                        )
+                    `)
+                    .eq('id', generationId)
+                    .single();
+
+                if (error) throw error;
+
+                if (data) {
+                    setDrafts({
+                        "cover-letter": data.cover_letter || "",
+                        "cover-email": data.cover_email || ""
+                    });
+                    setIsGenerated(true);
+                    
+                    if (data.ANALYSIS_JOB) {
+                        const jobDetails = data.ANALYSIS_JOB;
+                        setAnalysisData({
+                            job: {
+                                jobTitle: jobDetails.parsed_job_desc?.title || "Target Role",
+                                companyName: jobDetails.parsed_job_desc?.company || "Company",
+                                location: jobDetails.parsed_job_desc?.location || "Location",
+                            }
+                        });
+                        setJobDescription(jobDetails.job_desc || "");
+                        
+                        setFullData({
+                            job_id: data.job_id,
+                            parsed_jd: jobDetails.parsed_job_desc,
+                            parsed_resume: jobDetails.parsed_resume,
+                            match_result: { score: 100, matched_skills: [], skill_gaps: [], suggestions: [] },
+                            generation_name: jobDetails.generation_name || data.name
+                        });
+
+                        if (jobDetails.resume_file) {
+                            const parts = jobDetails.resume_file.split('/');
+                            setOriginalFilename(parts[parts.length - 1]);
+                        }
+                    } else {
+                        setAnalysisData({
+                            job: {
+                                jobTitle: data.name || "Saved Draft",
+                                companyName: "Unknown",
+                                location: "Unknown",
+                            }
+                        });
+                        setJobDescription("Job description not available for this saved draft.");
+                        setOriginalFilename("Resume not available");
+                    }
+                    return true;
+                }
+            } catch (err) {
+                console.error("Failed to fetch generation from DB", err);
+            }
+            return false;
+        };
+
+        if (genId) {
+            fetchGenFromDb(genId).then(success => {
+                if (!success) loadFallback();
+            });
+        } else if (id) {
             fetchFromDb(id).then(success => {
                 if (!success) loadFallback();
             });
@@ -247,11 +321,29 @@ function GenerationContent() {
                 return;
             }
 
+            let currentJobId = fullData?.job_id;
+
+            if (!currentJobId) {
+                const { data: jobData, error: jobError } = await supabase.from('ANALYSIS_JOB').insert({
+                    user_id: user.id,
+                    generation_name: fullData?.generation_name || "New Draft",
+                    job_desc: jobDescription,
+                    parsed_job_desc: fullData?.parsed_jd,
+                    parsed_resume: fullData?.parsed_resume
+                }).select('id').single();
+
+                if (jobError) throw jobError;
+                currentJobId = jobData.id;
+                
+                setFullData((prev: any) => ({ ...prev, job_id: currentJobId }));
+            }
+
             const { error } = await supabase.from('GENERATION_RESULT').insert({
                 user_id: user.id,
                 name: fullData?.generation_name || "New Draft",
                 cover_letter: drafts["cover-letter"],
-                cover_email: drafts["cover-email"]
+                cover_email: drafts["cover-email"],
+                job_id: currentJobId
             });
 
             if (error) throw error;

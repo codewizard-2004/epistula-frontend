@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import RecentGeneration from "@/components/RecentGeneration";
+import AllActivityModal from "@/components/AllActivityModal";
 import styles from "./dashboard.module.css";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/lib/supabase";
@@ -11,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 export default function DashboardPage() {
     const router = useRouter();
     const [userName, setUserName] = useState("Alex");
+    const [isModalOpen, setIsModalOpen] = useState(false);
 
     useEffect(() => {
         const checkUser = async () => {
@@ -48,6 +50,8 @@ export default function DashboardPage() {
                 <div className="absolute bottom-[10%] left-[10%] w-[300px] h-[300px] bg-blue-200 dark:bg-blue-900/20 rounded-full blur-[80px] opacity-30 pointer-events-none"></div>
 
                 <Navbar />
+                
+                <AllActivityModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
 
                 <div className="p-12 max-w-[1400px] mx-auto w-full flex flex-col gap-10 mt-4">
                     {/* Welcome Area */}
@@ -93,7 +97,7 @@ export default function DashboardPage() {
                         <div className="md:row-span-2 bg-white/80 dark:bg-surface-dark/80 backdrop-blur-sm p-8 rounded-3xl border border-gray-100 dark:border-gray-800 flex flex-col h-full shadow-sm glass-effect">
                             <div className="flex justify-between items-end mb-6 pb-4 border-b border-gray-100 dark:border-gray-800">
                                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white">Recent Activity</h3>
-                                <Link href="#" className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors font-medium">View all</Link>
+                                <button onClick={() => setIsModalOpen(true)} className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors font-medium">View all</button>
                             </div>
                             <div className="flex flex-col gap-3 flex-1 overflow-y-auto pr-2">
                                 <RecentGeneration />

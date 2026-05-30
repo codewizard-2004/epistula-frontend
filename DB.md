@@ -29,8 +29,10 @@ CREATE TABLE public.GENERATION_RESULT (
   cover_letter text,
   cover_email text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
+  job_id uuid NOT NULL,
   CONSTRAINT GENERATION_RESULT_pkey PRIMARY KEY (id),
-  CONSTRAINT GENERATION_RESULT_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.USERS(id)
+  CONSTRAINT GENERATION_RESULT_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.USERS(id),
+  CONSTRAINT GENERATION_RESULT_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.ANALYSIS_JOB(id)
 );
 CREATE TABLE public.USERS (
   id uuid NOT NULL,

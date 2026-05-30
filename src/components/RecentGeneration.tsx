@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import RecentGenerationItem from "./RecentGenerationItem"
 
-type ActivityItem = {
+type ActivityData = {
     id: string;
     title: string;
     typeItem: string;
     createdAt: string;
+    score?: number;
+}
+
+type ActivityItem = ActivityData & {
     onClick: () => void;
 }
 
@@ -29,6 +33,9 @@ function formatTimeAgo(dateString: string) {
     return date.toLocaleDateString();
 }
 
+const CACHE_KEY = "epistula_recent_activities_v2";
+const CACHE_EXPIRY = 5 * 60 * 1000; // 5 minutes
+
 export default function RecentGeneration() {
     const [activities, setActivities] = useState<ActivityItem[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,6 +43,28 @@ export default function RecentGeneration() {
 
     useEffect(() => {
         const fetchActivities = async () => {
+            const now = Date.now();
+            const cachedData = sessionStorage.getItem(CACHE_KEY);
+            
+            if (cachedData) {
+                try {
+                    const { timestamp, data } = JSON.parse(cachedData);
+                    if (now - timestamp < CACHE_EXPIRY) {
+                        const restoredActivities = data.map((item: ActivityData) => ({
+                            ...item,
+                            onClick: item.typeItem === "Analysis" 
+                                ? () => router.push(`/analyze/result?id=${item.id}`)
+                                : () => router.push(`/analyze/generation?genId=${item.id}`)
+                        }));
+                        setActivities(restoredActivities);
+                        setLoading(false);
+                        return; // Use cached data, no refetch
+                    }
+                } catch (e) {
+                    console.warn("Cache parsing error, refetching...", e);
+                }
+            }
+
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return;
@@ -54,12 +83,13 @@ export default function RecentGeneration() {
                         generation_name,
                         ANALYSIS_RESULT (
                             result_id,
-                            created_at
+                            created_at,
+                            ats_result
                         )
                     `)
                     .eq("user_id", user.id);
 
-                const fetchedActivities: ActivityItem[] = [];
+                const fetchedActivities: ActivityData[] = [];
 
                 if (genData) {
                     genData.forEach((gen) => {
@@ -67,8 +97,7 @@ export default function RecentGeneration() {
                             id: gen.id,
                             title: gen.name || "Draft Generation",
                             typeItem: "Cover Letter",
-                            createdAt: gen.created_at,
-                            onClick: () => router.push(`/analyze/generation?id=${gen.id}`)
+                            createdAt: gen.created_at
                         });
                     });
                 }
@@ -78,12 +107,16 @@ export default function RecentGeneration() {
                         if (job.ANALYSIS_RESULT) {
                             const results = Array.isArray(job.ANALYSIS_RESULT) ? job.ANALYSIS_RESULT : [job.ANALYSIS_RESULT];
                             results.forEach((res: any) => {
+                                let score = undefined;
+                                if (res.ats_result && typeof res.ats_result.score === "number") {
+                                    score = res.ats_result.score;
+                                }
                                 fetchedActivities.push({
                                     id: res.result_id,
                                     title: job.generation_name || "Resume Analysis",
                                     typeItem: "Analysis",
                                     createdAt: res.created_at,
-                                    onClick: () => router.push(`/analyze/result?id=${res.result_id}`)
+                                    score
                                 });
                             });
                         }
@@ -91,7 +124,21 @@ export default function RecentGeneration() {
                 }
 
                 fetchedActivities.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-                setActivities(fetchedActivities.slice(0, 5));
+                const finalData = fetchedActivities.slice(0, 5);
+
+                sessionStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: now,
+                    data: finalData
+                }));
+
+                const finalActivities = finalData.map((item) => ({
+                    ...item,
+                    onClick: item.typeItem === "Analysis" 
+                        ? () => router.push(`/analyze/result?id=${item.id}`)
+                        : () => router.push(`/analyze/generation?genId=${item.id}`)
+                }));
+
+                setActivities(finalActivities);
             } catch (err) {
                 console.error("Failed to fetch activities", err);
             } finally {
@@ -115,6 +162,7 @@ export default function RecentGeneration() {
                             typeItem={item.typeItem}
                             time={formatTimeAgo(item.createdAt)}
                             onClick={item.onClick}
+                            score={item.score}
                         />
                     ))
                 ) : (
