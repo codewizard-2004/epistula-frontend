@@ -23,27 +23,28 @@
     gap: 1rem;
 }
 
-.logoIcon {
-    padding: 0.5rem;
-    background-color: #1F2937;
-    border-radius: 0.75rem;
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-}
 
-:global(.dark) .logoIcon {
-    background-color: #374151;
-}
 
 .logoText {
     font-size: 1.875rem;
     font-weight: 700;
     color: #111827;
     letter-spacing: -0.025em;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
 }
 
 :global(.dark) .logoText {
     color: white;
+}
+
+.logoHighlight {
+    background: linear-gradient(135deg, #a855f7, #6366f1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
 }
 
 .navLinks {

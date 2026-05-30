@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import styles from "./navbar.module.css";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
@@ -64,9 +65,11 @@ export default function Navbar() {
         <header className={styles.navbar}>
             <div className={styles.logoArea}>
                 <div className={styles.logoIcon}>
-                    <span className="material-icons-round text-2xl">mark_email_unread</span>
+                <Image src="/logo.png" alt="Epistula AI Logo" width={48} height={48} priority className="rounded-[14px] shadow-sm" />
                 </div>
-                <h1 className={styles.logoText}>Epistula AI</h1>
+                <h1 className={styles.logoText}>
+                    Epistula <span className={styles.logoHighlight}>AI</span>
+                </h1>
             </div>
 
             <nav className={styles.navLinks}>

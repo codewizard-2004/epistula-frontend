@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import RecentGeneration from "@/components/RecentGeneration";
+import Statistics from "@/components/Statistics";
 import AllActivityModal from "@/components/AllActivityModal";
 import styles from "./dashboard.module.css";
 import Navbar from "@/components/Navbar";
@@ -58,6 +59,7 @@ export default function DashboardPage() {
                     <div>
                         <h2 className="text-gray-900 dark:text-white mb-3 font-bold text-4xl">Optimize Your Career Path</h2>
                         <p className="text-lg text-gray-500 dark:text-gray-400 font-light">Leverage AI to refine your application and accelerate your job search.</p>
+                        <Statistics />
                     </div>
 
                     {/* Bento Grid Layout */}
