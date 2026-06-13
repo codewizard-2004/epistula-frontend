@@ -29,6 +29,8 @@ export default function LoginPage() {
                 throw error;
             }
 
+            console.log("Access Token:", data.session?.access_token);
+
             // Move straight to dashboard page
             router.push("/dashboard");
         } catch (err: any) {

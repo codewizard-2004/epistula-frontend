@@ -30,6 +30,8 @@ export default function SignupPage() {
                 throw error;
             }
 
+            console.log("Access Token:", data.session?.access_token);
+
             if (data.user) {
                 // Insert information to the USERS table in DB.md
                 const { error: dbError } = await supabase

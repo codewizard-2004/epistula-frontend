@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 export interface AnalyzeResponse {
     match_analysis: {
@@ -24,7 +25,7 @@ export function useAnalyze() {
 
         try {
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const response = await fetch(`${apiUrl}/api/analyze/`, {
+            const response = await fetchWithAuth(`${apiUrl}/api/analyze/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

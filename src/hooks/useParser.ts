@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { fetchWithAuth } from '@/lib/fetchWithAuth';
 
 export interface ParseResponse {
     parsed_jd: any;
@@ -20,7 +21,7 @@ export function useParser() {
             formData.append('job_description', jobDescription);
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const response = await fetch(`${apiUrl}/api/parse/`, {
+            const response = await fetchWithAuth(`${apiUrl}/api/parse/`, {
                 method: 'POST',
                 body: formData,
             });

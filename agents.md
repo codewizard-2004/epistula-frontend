@@ -13,7 +13,7 @@ The backend is built with FastAPI and organized into several key directories:
   - `extract.py`: Endpoints for parsing Resumes and Job Descriptions.
   - `analyze.py`: Endpoints for matching analysis and ATS scoring.
   - `generate.py`: Endpoints for generating cover letters and emails.
-  - `jobs.py`: Placeholder for job search integration.
+  - `jobs.py`: Endpoints for job search integration.
 - `services/`: Contains the core business logic and AI agents.
   - `chains.py`: Defines the Langchain agents and parallel execution pipelines.
   - `prompts.py`: Stores the system prompts used by the Langchain agents.
@@ -24,7 +24,23 @@ The system uses a sequential, multi-step pipeline where each step is handled by 
 
 1. **Parse (`/api/parse/`)**: Extract structured data from raw Resume PDFs and Job Description text.
 2. **Analyze (`/api/analyze/`)**: Compare the parsed Resume against the parsed Job Description to calculate match scores and ATS readiness.
-3. **Generate (`/api/generate/generate`)**: Create tailored artifacts (Cover Letters and Emails) using the analysis results.
+3. **Generate (`/api/generate` and `/api/v1/generate`)**: Create tailored artifacts (Cover Letters and Emails) using the parsed data, and optionally analysis results.
+
+## 🛡️ Security, Authentication & Rate Limiting
+
+The backend uses a strict security and rate-limiting system designed to protect against abuse, particularly on expensive LLM-based endpoints.
+
+### Authentication
+All routes under `/api/` are protected by Supabase JWT authentication.
+- **Header Required**: `Authorization: Bearer <SUPABASE_JWT_TOKEN>`
+- **Dynamic Verification**: The API automatically detects if the Supabase project uses symmetric (`HS256`) or asymmetric (`ES256`) keys. For asymmetric keys, it seamlessly fetches the public key from the Supabase JWKS endpoint to verify the signature.
+
+### Rate Limiting
+Rate limiting is enforced on a **per-user basis** using the `sub` claim (User ID) from the valid JWT. If an unauthenticated request hits a fallback endpoint, it is rate-limited by IP address.
+- **LLM/AI Endpoints (`/api/parse/*`, `/api/analyze/*`, `/api/generate`, `/api/v1/generate`)**: Limited to **5 requests per minute**.
+- **Standard Endpoints (`/api/jobs/search`)**: Limited to **10 requests per minute**.
+
+*(Note for Frontend Agents: When building the API client, ensure the Supabase session token is always intercepted and passed in the `Authorization` header for all requests.)*
 
 ## 🔌 API Endpoints
 
@@ -76,6 +92,7 @@ Extracts structured information from a user's resume and a given job description
 ```
 
 ### 2. Analysis Router (`/api/analyze/`)
+#### Endpoint: `/api/analyze/`
 Analyzes the match between the resume and job description, and checks ATS friendliness.
 
 - **Method**: `POST`
@@ -111,16 +128,41 @@ Analyzes the match between the resume and job description, and checks ATS friend
 }
 ```
 
-### 3. Generation Router (`/api/generate/generate`)
-Generates tailored cover letters and emails based on the analysis.
+#### Endpoint: `/api/analyze/matching`
+A quick analysis endpoint that takes a raw job description and parsed resume, returning just the match percentage.
+
+- **Method**: `POST`
+- **Request Model**: `MatchingRequest`
+  - Requires `jd` (string, raw job description text), `parsed_resume` (Resume).
+- **Response Model**: `MatchingResponse`
+
+**Example Request (JSON)**
+```json
+{
+  "jd": "We are looking for a Python Developer...",
+  "parsed_resume": { /* Resume Object */ }
+}
+```
+
+**Example Response (JSON)**
+```json
+{
+  "status": "success",
+  "matching_percentage": 85
+}
+```
+
+### 3. Generation Router (`/api/generate` and `/api/v1/generate`)
+Generates tailored cover letters and emails based on the parsed data and optionally the analysis.
+
+#### Endpoint: `/api/generate`
+Uses the match analysis results to generate highly tailored artifacts.
 
 - **Method**: `POST`
 - **Request Model**: `GenerateRequest`
   - Requires `parsed_jd` (JobDescription), `parsed_resume` (Resume), `matching_analysis` (MatchingResponse).
   - Optional: `tone` (string, default "Professional"), and `generate_email` (boolean, default False).
 - **Response Model**: `GenerateResponse`
-  - `cover_letter`: string
-  - `cover_email`: string | null
 
 **Example Request (JSON)**
 ```json
@@ -133,13 +175,54 @@ Generates tailored cover letters and emails based on the analysis.
 }
 ```
 
-**Example Response (JSON)**
+#### Endpoint: `/api/v1/generate` (Direct Generation)
+Generates the cover letter directly from the parsed Job Description and Resume, bypassing the match analysis step.
+
+- **Method**: `POST`
+- **Request Model**: `GenerateRequestV1`
+  - Requires `parsed_jd` (JobDescription), `parsed_resume` (Resume).
+  - Optional: `tone` (string, default "Professional"), and `generate_email` (boolean, default False).
+- **Response Model**: `GenerateResponse`
+
+**Example Request (JSON)**
+```json
+{
+  "parsed_jd": { /* JobDescription Object */ },
+  "parsed_resume": { /* Resume Object */ },
+  "tone": "Professional",
+  "generate_email": true
+}
+```
+
+**Example Response (JSON) (For both endpoints)**
 ```json
 {
   "cover_letter": "Dear Hiring Manager,\n\nI am writing to express my interest in the Python Developer position...",
   "cover_email": "Subject: Application for Python Developer - Jane Doe\n\nHi,\n\nPlease find my resume attached..."
 }
 ```
+
+### 4. Jobs Router (`/api/jobs/`)
+Handles job search integration via Rapid API / JSearch API.
+
+#### Endpoint: `/api/jobs/search`
+Searches for jobs by taking a natural language prompt, passing it through an LLM to extract parameters, and then hitting the JSearch API.
+
+- **Method**: `POST`
+- **Request Model**: `SearchJobPromptRequest` (from `models/job_models.py`)
+  - Requires `prompt` (string): Natural language description of the job search.
+  - Optional: `page` (int, default 1), `num_pages` (int, default 1).
+- **Response Model**: `dict` (JSON results from JSearch API)
+
+**Example Request (JSON)**
+```json
+{
+  "prompt": "I want an IT job at Bangalore with a minimum salary of 50000 in India",
+  "page": 1,
+  "num_pages": 1
+}
+```
+
 
 ## 🧠 Langchain Agents & Chains (`services/chains.py`)
 
@@ -148,9 +231,11 @@ The application leverages several specialized agents, utilizing `ChatGoogleGener
 - `parse_job_description`: Parses raw text into a `JobDescription` object.
 - `parse_resume`: Parses raw resume text into a `Resume` object.
 - `analyze_match`: Compares `JobDescription` and `Resume` to output a `MatchingResponse`.
+- `quick_analyze_match`: Quickly compares a raw JD text and `Resume` to output a match percentage.
 - `check_ats`: Evaluates raw resume text for ATS optimization, returning an `ATSResponse`.
 - `generate_cover_letter`: Uses JD, Resume, and Match Analysis to draft a tailored cover letter.
 - `generate_cover_email`: Uses JD, Resume, and Match Analysis to draft a tailored email.
+- `parse_job_search_prompt`: Parses a natural language job search prompt into a structured `SearchJobRequest`.
 
 ### Parallel Processing Pipelines
 To optimize performance, certain agents are grouped into parallel runnables using `RunnableParallel`:
@@ -192,3 +277,21 @@ Here are the primary Pydantic models used for input validation and structured LL
 - `score` (int): 0-100 ATS optimization score.
 - `issues` (List[str]): Identified ATS parsing problems.
 - `suggestions` (List[str]): Advice to improve ATS formatting.
+
+**`MatchingRequest` & `MatchingResponse`**
+- `MatchingRequest`: Contains `jd` (str) and `parsed_resume` (`Resume`).
+- `MatchingResponse`: Contains `status` (str) and `matching_percentage` (int).
+
+### Job Search Models (`models/job_models.py`)
+
+**`SearchJobPromptRequest`**
+- `prompt` (str): Natural language prompt describing the job search.
+- `page` (int): Page number.
+- `num_pages` (int): Number of pages to fetch.
+
+**`SearchJobRequest`** (Used internally by LLM extraction)
+- `query` (str): Extracted search query.
+- `country` (str): Extracted country code.
+- `city` (Optional[str]): Extracted city name.
+- `employment_types` (List[str]): Extracted employment types.
+- `min_salary` (int): Extracted minimum salary.

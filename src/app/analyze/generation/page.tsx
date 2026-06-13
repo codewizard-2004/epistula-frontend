@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 import { useParser } from "@/hooks/useParser";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 function GenerationContent() {
     const searchParams = useSearchParams();
@@ -281,7 +282,7 @@ function GenerationContent() {
             }
 
             const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-            const response = await fetch(`${apiUrl}/api/generate/generate`, {
+            const response = await fetchWithAuth(`${apiUrl}/api/generate/generate`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
