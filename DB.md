@@ -1,5 +1,13 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.USERS (
+  id uuid NOT NULL,
+  name text NOT NULL,
+  email text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT USERS_pkey PRIMARY KEY (id)
+);
 CREATE TABLE public.ANALYSIS_JOB (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   generation_name text NOT NULL,
@@ -44,10 +52,53 @@ CREATE TABLE public.STATISTICS (
   CONSTRAINT STATISTICS_pkey PRIMARY KEY (user_id),
   CONSTRAINT STATISTICS_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.USERS(id)
 );
-CREATE TABLE public.USERS (
-  id uuid NOT NULL,
-  name text NOT NULL,
-  email text,
+CREATE TABLE public.USER_RESUME (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  user_id uuid NOT NULL,
+  resume_file text,
+  parsed_text json NOT NULL,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
-  CONSTRAINT USERS_pkey PRIMARY KEY (id)
+  CONSTRAINT USER_RESUME_pkey PRIMARY KEY (id),
+  CONSTRAINT USER_RESUME_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.USERS(id)
+);
+CREATE TABLE public.SAVED_JOBS (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  job_id text NOT NULL,
+  job_title text,
+  employer_name text,
+  employer_logo text,
+  employer_website text,
+  job_publisher text,
+  job_employment_type text,
+  job_employment_types ARRAY,
+  job_apply_link text,
+  job_apply_is_direct boolean,
+  job_description text,
+  job_is_remote boolean,
+  job_location text,
+  job_city text,
+  job_state text,
+  job_country text,
+  job_latitude double precision,
+  job_longitude double precision,
+  job_posted_at text,
+  job_posted_at_timestamp bigint,
+  job_posted_at_datetime_utc timestamp with time zone,
+  job_salary text,
+  job_salary_string text,
+  job_min_salary numeric,
+  job_max_salary numeric,
+  job_salary_period text,
+  job_benefits jsonb,
+  job_benefits_strings ARRAY,
+  job_highlights jsonb,
+  employer_reviews jsonb,
+  job_google_link text,
+  apply_options jsonb,
+  job_onet_soc text,
+  job_onet_job_zone text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT SAVED_JOBS_pkey PRIMARY KEY (id),
+  CONSTRAINT fk_saved_jobs_user FOREIGN KEY (user_id) REFERENCES public.USERS(id)
 );
