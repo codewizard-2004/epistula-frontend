@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./analyze.module.css";
 import Navbar from "@/components/Navbar";
@@ -21,6 +21,14 @@ export default function AnalyzePage() {
     const { analyze } = useAnalyze();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        const pendingJD = sessionStorage.getItem('pending_job_description');
+        if (pendingJD) {
+            setJobDescription(pendingJD);
+            sessionStorage.removeItem('pending_job_description');
+        }
+    }, []);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
